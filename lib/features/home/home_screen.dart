@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/constants/language_provider.dart';
 import '../../core/constants/language.dart';
 import '../birth_chart/screens/birth_input_screen.dart';
@@ -15,11 +17,14 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+    final goldAccent = isDark ? AppColors.gold : AppColors.templeGold;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.bgGradient,
+        decoration: BoxDecoration(
+          gradient: AppColors.getBgGradient(isDark),
         ),
         child: SafeArea(
           child: Padding(
@@ -29,25 +34,25 @@ class HomeScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 12),
 
-                // Top Bar with Language Selector
+                // Top Bar with Brand Badge, Theme Switcher & Language Selector
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.15),
+                        color: goldAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                        border: Border.all(color: goldAccent.withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.stars, color: AppColors.gold, size: 14),
-                          SizedBox(width: 6),
+                          Icon(Icons.stars, color: goldAccent, size: 14),
+                          const SizedBox(width: 6),
                           Text(
                             'JAGANNATHA HORA MOBILE',
                             style: TextStyle(
-                              color: AppColors.gold,
+                              color: goldAccent,
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1,
@@ -57,65 +62,80 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Language Selector Dropdown
-                    PopupMenuButton<AppLanguage>(
-                      initialValue: lang.currentLanguage,
-                      icon: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgElevated,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.chartBorder),
+                    Row(
+                      children: [
+                        // Day / Night Theme Mode Switcher
+                        IconButton(
+                          icon: Icon(
+                            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                            color: goldAccent,
+                            size: 20,
+                          ),
+                          tooltip: isDark ? 'Day Mode (పగటి వేళ)' : 'Night Mode (రాత్రి వేళ)',
+                          onPressed: () => themeProvider.toggleTheme(),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.language, color: AppColors.gold, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              lang.currentLanguage == AppLanguage.telugu ? 'తెలుగు' : 'EN',
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
+
+                        // Language Selector Dropdown
+                        PopupMenuButton<AppLanguage>(
+                          initialValue: lang.currentLanguage,
+                          icon: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.getElevatedColor(isDark),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.getBorderColor(isDark)),
                             ),
-                          ],
-                        ),
-                      ),
-                      color: AppColors.bgElevated,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: AppColors.chartBorder),
-                      ),
-                      onSelected: (AppLanguage selected) {
-                        lang.setLanguage(selected);
-                      },
-                      itemBuilder: (context) => [
-                        for (final entry in AppStrings.languageNames.entries)
-                          PopupMenuItem(
-                            value: entry.key,
                             child: Row(
                               children: [
-                                if (lang.currentLanguage == entry.key)
-                                  const Icon(Icons.check, color: AppColors.gold, size: 16)
-                                else
-                                  const SizedBox(width: 16),
-                                const SizedBox(width: 8),
+                                Icon(Icons.language, color: goldAccent, size: 16),
+                                const SizedBox(width: 4),
                                 Text(
-                                  entry.value,
+                                  lang.currentLanguage == AppLanguage.telugu ? 'తెలుగు' : 'EN',
                                   style: TextStyle(
-                                    color: lang.currentLanguage == entry.key
-                                        ? AppColors.gold
-                                        : AppColors.textPrimary,
-                                    fontWeight: lang.currentLanguage == entry.key
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
-                                    fontSize: 13,
+                                    color: AppColors.getTextPrimary(isDark),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
+                          color: AppColors.getElevatedColor(isDark),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: AppColors.getBorderColor(isDark)),
+                          ),
+                          onSelected: (AppLanguage selected) {
+                            lang.setLanguage(selected);
+                          },
+                          itemBuilder: (context) => [
+                            for (final entry in AppStrings.languageNames.entries)
+                              PopupMenuItem(
+                                value: entry.key,
+                                child: Row(
+                                  children: [
+                                    if (lang.currentLanguage == entry.key)
+                                      Icon(Icons.check, color: goldAccent, size: 16)
+                                    else
+                                      const SizedBox(width: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      entry.value,
+                                      style: TextStyle(
+                                        color: lang.currentLanguage == entry.key
+                                            ? goldAccent
+                                            : AppColors.getTextPrimary(isDark),
+                                        fontWeight: lang.currentLanguage == entry.key
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ],
@@ -134,24 +154,24 @@ class HomeScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              AppColors.gold.withValues(alpha: 0.3),
-                              AppColors.gold.withValues(alpha: 0.05),
+                              goldAccent.withValues(alpha: 0.25),
+                              goldAccent.withValues(alpha: 0.05),
                             ],
                           ),
                           border: Border.all(
-                            color: AppColors.gold.withValues(alpha: 0.4),
+                            color: goldAccent.withValues(alpha: 0.4),
                             width: 1.5,
                           ),
                         ),
-                        child: const Center(
-                          child: Text('☉', style: TextStyle(fontSize: 34, color: AppColors.gold)),
+                        child: Center(
+                          child: Text('☉', style: TextStyle(fontSize: 34, color: goldAccent)),
                         ),
                       ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.8, 0.8)),
                       const SizedBox(height: 12),
                       Text(
                         lang.l('app_name'),
                         style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                              color: AppColors.textPrimary,
+                              color: AppColors.getTextPrimary(isDark),
                               letterSpacing: 2,
                               fontWeight: FontWeight.w800,
                             ),
@@ -160,7 +180,7 @@ class HomeScreen extends StatelessWidget {
                       Text(
                         lang.l('vedic_astrology'),
                         style: TextStyle(
-                          color: AppColors.gold.withValues(alpha: 0.85),
+                          color: goldAccent.withValues(alpha: 0.85),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 2.5,
@@ -172,88 +192,115 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Feature cards
+                // Responsive Feature Cards (Adaptive Column on phones, Adaptive Grid on tablets/foldables)
                 Expanded(
-                  child: ListView(
-                    children: [
-                      _buildFeatureCard(
-                        context,
-                        lang,
-                        icon: Icons.auto_awesome,
-                        titleKey: 'birth_chart',
-                        subtitleKey: 'birth_chart_desc',
-                        onTap: () => Navigator.push(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isTablet = constraints.maxWidth >= 600;
+
+                      final cards = [
+                        _buildFeatureCard(
                           context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const BirthInputScreen(),
-                            transitionsBuilder: (_, anim, __, child) {
-                              return FadeTransition(
-                                opacity: anim,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0.03, 0),
-                                    end: Offset.zero,
-                                  ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-                                  child: child,
-                                ),
-                              );
-                            },
-                            transitionDuration: const Duration(milliseconds: 300),
+                          lang,
+                          isDark,
+                          goldAccent,
+                          icon: Icons.auto_awesome,
+                          titleKey: 'birth_chart',
+                          subtitleKey: 'birth_chart_desc',
+                          onTap: () => Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (_, __, ___) => const BirthInputScreen(),
+                              transitionsBuilder: (_, anim, __, child) {
+                                return FadeTransition(
+                                  opacity: anim,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.03, 0),
+                                      end: Offset.zero,
+                                    ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              transitionDuration: const Duration(milliseconds: 300),
+                            ),
                           ),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 500.ms).slideX(begin: 0.05),
+                        ).animate().fadeIn(duration: 400.ms, delay: 500.ms).slideX(begin: 0.05),
 
-                      const SizedBox(height: 10),
-
-                      _buildFeatureCard(
-                        context,
-                        lang,
-                        icon: Icons.calendar_month,
-                        titleKey: 'panchanga',
-                        subtitleKey: 'panchanga_desc',
-                        onTap: () => Navigator.push(
+                        _buildFeatureCard(
                           context,
-                          MaterialPageRoute(builder: (_) => const PanchangaScreen()),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 600.ms).slideX(begin: 0.05),
+                          lang,
+                          isDark,
+                          goldAccent,
+                          icon: Icons.calendar_month,
+                          titleKey: 'panchanga',
+                          subtitleKey: 'panchanga_desc',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PanchangaScreen()),
+                          ),
+                        ).animate().fadeIn(duration: 400.ms, delay: 600.ms).slideX(begin: 0.05),
 
-                      const SizedBox(height: 10),
-
-                      _buildFeatureCard(
-                        context,
-                        lang,
-                        icon: Icons.question_answer_outlined,
-                        titleKey: 'Prasna / Horary Chart (ప్రశ్న శాస్త్రం)',
-                        subtitleKey: 'Instant chart for current moment with 1–249 KP Seed',
-                        isDirectString: true,
-                        onTap: () => Navigator.push(
+                        _buildFeatureCard(
                           context,
-                          MaterialPageRoute(builder: (_) => const PrasnaScreen()),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 700.ms).slideX(begin: 0.05),
+                          lang,
+                          isDark,
+                          goldAccent,
+                          icon: Icons.question_answer_outlined,
+                          titleKey: 'Prasna / Horary Chart (ప్రశ్న శాస్త్రం)',
+                          subtitleKey: 'Instant chart for current moment with 1–249 KP Seed',
+                          isDirectString: true,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PrasnaScreen()),
+                          ),
+                        ).animate().fadeIn(duration: 400.ms, delay: 700.ms).slideX(begin: 0.05),
 
-                      const SizedBox(height: 10),
-
-                      _buildFeatureCard(
-                        context,
-                        lang,
-                        icon: Icons.bookmarks,
-                        titleKey: 'saved_charts',
-                        subtitleKey: 'saved_charts_desc',
-                        onTap: () => Navigator.push(
+                        _buildFeatureCard(
                           context,
-                          MaterialPageRoute(builder: (_) => const SavedHoroscopesScreen()),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 800.ms).slideX(begin: 0.05),
-                    ],
+                          lang,
+                          isDark,
+                          goldAccent,
+                          icon: Icons.bookmarks,
+                          titleKey: 'saved_charts',
+                          subtitleKey: 'saved_charts_desc',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SavedHoroscopesScreen()),
+                          ),
+                        ).animate().fadeIn(duration: 400.ms, delay: 800.ms).slideX(begin: 0.05),
+                      ];
+
+                      if (isTablet) {
+                        return Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 900),
+                            child: GridView.count(
+                              crossAxisCount: 2,
+                              childAspectRatio: 2.8,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              children: cards,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        itemCount: cards.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, index) => cards[index],
+                      );
+                    },
                   ),
                 ),
 
                 Center(
                   child: Text(
-                    'Swiss Ephemeris Precision • Phase 3 & 4 Complete • v1.0.0',
+                    'Swiss Ephemeris Precision • 16 Shodashavargas • v1.0.0',
                     style: TextStyle(
-                      color: AppColors.textMuted.withValues(alpha: 0.4),
+                      color: AppColors.getTextMuted(isDark).withValues(alpha: 0.5),
                       fontSize: 10,
                       letterSpacing: 1,
                     ),
@@ -270,7 +317,9 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildFeatureCard(
     BuildContext context,
-    LanguageProvider lang, {
+    LanguageProvider lang,
+    bool isDark,
+    Color goldAccent, {
     required IconData icon,
     required String titleKey,
     required String subtitleKey,
@@ -282,12 +331,19 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: AppColors.cardGradient,
+          gradient: AppColors.getCardGradient(isDark),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.gold.withValues(alpha: 0.25),
+            color: goldAccent.withValues(alpha: isDark ? 0.25 : 0.35),
             width: 0.8,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -295,12 +351,12 @@ class HomeScreen extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.15),
+                color: goldAccent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: AppColors.gold,
+                color: goldAccent,
                 size: 22,
               ),
             ),
@@ -308,11 +364,12 @@ class HomeScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     isDirectString ? titleKey : lang.l(titleKey),
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: AppColors.getTextPrimary(isDark),
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -320,14 +377,14 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     isDirectString ? subtitleKey : lang.l(subtitleKey),
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                    style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 11),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: AppColors.gold,
+              color: goldAccent,
               size: 20,
             ),
           ],

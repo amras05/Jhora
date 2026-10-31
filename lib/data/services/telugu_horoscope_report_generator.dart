@@ -213,7 +213,8 @@ class TeluguHoroscopeReportGenerator {
       final lordTel = AstroConstants.nakshatraLordsTelugu[p.nakshatraIndex];
       final digTel = _getTeluguDignity(p);
       final retro = p.isRetrograde ? " <span style='color:#c2410c;'>(వ)</span>" : "";
-      buffer.writeln('      <tr><td class="center bold">$pTel$retro</td><td class="center">$rTel</td><td class="center">${_formatDms(p.degreesInRashi)}</td><td class="center">$nTel</td><td class="center">${p.pada}</td><td class="center">$lordTel</td><td class="center bold">$digTel</td></tr>');
+      final combust = p.isCombust ? " <span style='color:#ea580c;'>(మౌ)</span>" : "";
+      buffer.writeln('      <tr><td class="center bold">$pTel$retro$combust</td><td class="center">$rTel</td><td class="center">${_formatDms(p.degreesInRashi)}</td><td class="center">$nTel</td><td class="center">${p.pada}</td><td class="center">$lordTel</td><td class="center bold">$digTel</td></tr>');
     }
     buffer.writeln('    </tbody></table>');
 
@@ -515,7 +516,9 @@ class TeluguHoroscopeReportGenerator {
     for (final p in chart.planets) {
       int signIdx = chartType == 'D9' ? p.navamsaRashiIndex : p.rashiIndex;
       final abbr = AstroConstants.planetAbbrTelugu[p.name] ?? p.abbreviation;
-      signOccupants[signIdx].add(p.isRetrograde ? '$abbr(వ)' : abbr);
+      final retro = p.isRetrograde ? '(వ)' : '';
+      final combust = p.isCombust ? '(మౌ)' : '';
+      signOccupants[signIdx].add('$abbr$retro$combust');
     }
 
     final grid = AstroConstants.southIndianGrid;

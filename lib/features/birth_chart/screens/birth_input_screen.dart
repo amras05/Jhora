@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/constants/language_provider.dart';
 import '../../../data/models/birth_data.dart';
 import '../../../data/services/city_database.dart';
@@ -116,7 +117,8 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     }
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate(bool isDark) async {
+    final goldAccent = AppColors.getGold(isDark);
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -125,12 +127,19 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.gold,
-              onPrimary: AppColors.bgDark,
-              surface: AppColors.bgCard,
-              onSurface: AppColors.textPrimary,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: goldAccent,
+                    onPrimary: AppColors.bgDark,
+                    surface: AppColors.bgCard,
+                    onSurface: AppColors.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: goldAccent,
+                    onPrimary: Colors.white,
+                    surface: AppColors.bgLightCard,
+                    onSurface: AppColors.textLightPrimary,
+                  ),
           ),
           child: child!,
         );
@@ -139,19 +148,27 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     if (date != null) setState(() => _selectedDate = date);
   }
 
-  Future<void> _pickTime() async {
+  Future<void> _pickTime(bool isDark) async {
+    final goldAccent = AppColors.getGold(isDark);
     final time = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.gold,
-              onPrimary: AppColors.bgDark,
-              surface: AppColors.bgCard,
-              onSurface: AppColors.textPrimary,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: goldAccent,
+                    onPrimary: AppColors.bgDark,
+                    surface: AppColors.bgCard,
+                    onSurface: AppColors.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: goldAccent,
+                    onPrimary: Colors.white,
+                    surface: AppColors.bgLightCard,
+                    onSurface: AppColors.textLightPrimary,
+                  ),
           ),
           child: child!,
         );
@@ -225,297 +242,387 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+    final goldAccent = AppColors.getGold(isDark);
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+        decoration: BoxDecoration(gradient: AppColors.getBgGradient(isDark)),
         child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                backgroundColor: Colors.transparent,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 18),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('✦', style: TextStyle(color: AppColors.gold, fontSize: 18)),
-                    const SizedBox(width: 8),
-                    Text(
-                      lang.l('new_horoscope'),
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                  ],
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverToBoxAdapter(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ─── Personal Details ───
-                        _buildSectionHeader(lang.l('personal_details'), Icons.person_outline),
-                        const SizedBox(height: 12),
-                        _buildTextField(
-                          controller: _nameController,
-                          label: lang.l('full_name'),
-                          hint: lang.l('enter_name'),
-                          icon: Icons.person,
-                          validator: (v) => v == null || v.trim().isEmpty ? lang.l('enter_name') : null,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 600;
+              final maxContentWidth = isWide ? 720.0 : double.infinity;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        floating: true,
+                        backgroundColor: Colors.transparent,
+                        leading: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios, size: 18),
+                          onPressed: () => Navigator.pop(context),
                         ),
-
-                        const SizedBox(height: 24),
-
-                        // ─── Date & Time ───
-                        _buildSectionHeader(lang.l('birth_date_time'), Icons.calendar_month),
-                        const SizedBox(height: 12),
-                        Row(
+                        title: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(child: _buildDatePicker(lang)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _buildTimePicker(lang)),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // ─── Birth Place (Offline City Search) ───
-                        _buildSectionHeader(lang.l('birth_place'), Icons.location_on_outlined),
-                        const SizedBox(height: 8),
-
-                        // Popular Quick City Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _popularCityNames.map((city) {
-                              bool isSelected = _cityController.text.startsWith(city);
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6, bottom: 8),
-                                child: ActionChip(
-                                  label: Text(city),
-                                  labelStyle: TextStyle(
-                                    fontSize: 11,
-                                    color: isSelected ? AppColors.gold : AppColors.textSecondary,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                  ),
-                                  backgroundColor: isSelected
-                                      ? AppColors.gold.withValues(alpha: 0.2)
-                                      : AppColors.bgElevated,
-                                  side: BorderSide(
-                                    color: isSelected ? AppColors.gold : AppColors.chartBorder,
-                                    width: 0.8,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                                  onPressed: () => _selectPopularCity(city),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // City search input
-                        TextFormField(
-                          controller: _cityController,
-                          onChanged: _onCityChanged,
-                          onTap: () {
-                            if (_cityController.text.isNotEmpty) {
-                              _onCityChanged(_cityController.text);
-                            }
-                          },
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: lang.l('birth_city'),
-                            hintText: lang.l('search_city'),
-                            prefixIcon: const Icon(Icons.location_city, color: AppColors.gold, size: 20),
-                            suffixIcon: _isSearching
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.gold),
-                                      ),
-                                    ),
-                                  )
-                                : _cityController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.clear, color: AppColors.textMuted, size: 18),
-                                        onPressed: () {
-                                          _cityController.clear();
-                                          setState(() {
-                                            _showCityResults = false;
-                                            _cityResults = [];
-                                          });
-                                        },
-                                      )
-                                    : null,
-                          ),
-                        ),
-
-                        // City suggestions dropdown
-                        if (_showCityResults && _cityResults.isNotEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(top: 6),
-                            constraints: const BoxConstraints(maxHeight: 250),
-                            decoration: BoxDecoration(
-                              color: AppColors.bgElevated,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.gold.withValues(alpha: 0.5), width: 1.2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              itemCount: _cityResults.length,
-                              separatorBuilder: (_, __) =>
-                                  const Divider(color: AppColors.chartBorder, height: 1),
-                              itemBuilder: (context, idx) {
-                                final city = _cityResults[idx];
-                                return ListTile(
-                                  dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                                  leading: const Icon(Icons.location_on, color: AppColors.gold, size: 20),
-                                  title: Text(
-                                    city.name,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${city.state.isNotEmpty ? "${city.state}, " : ""}${city.country} • ${city.latitude.toStringAsFixed(4)}°, ${city.longitude.toStringAsFixed(4)}° (UTC+${city.timezone})',
-                                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
-                                  ),
-                                  trailing: const Icon(Icons.chevron_right, color: AppColors.gold, size: 16),
-                                  onTap: () => _selectCity(city),
-                                );
-                              },
-                            ),
-                          ),
-
-                        const SizedBox(height: 24),
-
-                        // ─── Coordinates ───
-                        _buildSectionHeader(lang.l('coordinates'), Icons.my_location),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _latController,
-                                label: lang.l('latitude'),
-                                hint: '17.3850',
-                                icon: Icons.north,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Required';
-                                  double? val = double.tryParse(v);
-                                  if (val == null || val < -90 || val > 90) return 'Invalid (-90 to 90)';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _lonController,
-                                label: lang.l('longitude'),
-                                hint: '78.4867',
-                                icon: Icons.east,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Required';
-                                  double? val = double.tryParse(v);
-                                  if (val == null || val < -180 || val > 180) return 'Invalid (-180 to 180)';
-                                  return null;
-                                },
+                            Text('✦', style: TextStyle(color: goldAccent, fontSize: 18)),
+                            const SizedBox(width: 8),
+                            Text(
+                              lang.l('new_horoscope'),
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: AppColors.getTextPrimary(isDark),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        _buildTextField(
-                          controller: _tzController,
-                          label: lang.l('timezone'),
-                          hint: '5.5',
-                          icon: Icons.schedule,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Required';
-                            double? val = double.tryParse(v);
-                            if (val == null || val < -12 || val > 14) return 'Invalid (-12 to 14)';
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 36),
-
-                        // ─── Generate Button ───
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: _generateChart,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.gold,
-                              foregroundColor: AppColors.bgDark,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
+                        actions: [
+                          IconButton(
+                            icon: Icon(
+                              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                              color: goldAccent,
+                              size: 20,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            tooltip: isDark ? 'Day Mode' : 'Night Mode',
+                            onPressed: () => themeProvider.toggleTheme(),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        sliver: SliverToBoxAdapter(
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.auto_awesome, size: 20),
-                                const SizedBox(width: 10),
-                                Text(
-                                  lang.l('generate'),
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                                // ─── Personal Details ───
+                                _buildSectionHeader(lang.l('personal_details'), Icons.person_outline, goldAccent),
+                                const SizedBox(height: 12),
+                                _buildTextField(
+                                  controller: _nameController,
+                                  label: lang.l('full_name'),
+                                  hint: lang.l('enter_name'),
+                                  icon: Icons.person,
+                                  isDark: isDark,
+                                  validator: (v) => v == null || v.trim().isEmpty ? lang.l('enter_name') : null,
                                 ),
+
+                                const SizedBox(height: 24),
+
+                                // ─── Date & Time ───
+                                _buildSectionHeader(lang.l('birth_date_time'), Icons.calendar_month, goldAccent),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(child: _buildDatePicker(lang, isDark)),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _buildTimePicker(lang, isDark)),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // ─── Birth Place (Offline City Search) ───
+                                _buildSectionHeader(lang.l('birth_place'), Icons.location_on_outlined, goldAccent),
+                                const SizedBox(height: 8),
+
+                                // Popular Quick City Chips
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: _popularCityNames.map((city) {
+                                      bool isSelected = _cityController.text.startsWith(city);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 6, bottom: 8),
+                                        child: ActionChip(
+                                          label: Text(city),
+                                          labelStyle: TextStyle(
+                                            fontSize: 11,
+                                            color: isSelected ? goldAccent : AppColors.getTextSecondary(isDark),
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          ),
+                                          backgroundColor: isSelected
+                                              ? goldAccent.withValues(alpha: 0.18)
+                                              : AppColors.getElevatedColor(isDark),
+                                          side: BorderSide(
+                                            color: isSelected ? goldAccent : AppColors.getBorderColor(isDark),
+                                            width: 0.8,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                          onPressed: () => _selectPopularCity(city),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+
+                                // City search input
+                                TextFormField(
+                                  controller: _cityController,
+                                  onChanged: _onCityChanged,
+                                  onTap: () {
+                                    if (_cityController.text.isNotEmpty) {
+                                      _onCityChanged(_cityController.text);
+                                    }
+                                  },
+                                  style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 14),
+                                  decoration: InputDecoration(
+                                    labelText: lang.l('birth_city'),
+                                    hintText: lang.l('search_city'),
+                                    prefixIcon: Icon(Icons.location_city, color: goldAccent, size: 20),
+                                    suffixIcon: _isSearching
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(goldAccent),
+                                              ),
+                                            ),
+                                          )
+                                        : _cityController.text.isNotEmpty
+                                            ? IconButton(
+                                                icon: Icon(Icons.clear, color: AppColors.getTextMuted(isDark), size: 18),
+                                                onPressed: () {
+                                                  _cityController.clear();
+                                                  setState(() {
+                                                    _showCityResults = false;
+                                                    _cityResults = [];
+                                                  });
+                                                },
+                                              )
+                                            : null,
+                                  ),
+                                ),
+
+                                // City suggestions dropdown
+                                if (_showCityResults && _cityResults.isNotEmpty)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 6),
+                                    constraints: const BoxConstraints(maxHeight: 250),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.getElevatedColor(isDark),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: goldAccent.withValues(alpha: 0.5), width: 1.2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: isDark ? 0.6 : 0.12),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      itemCount: _cityResults.length,
+                                      separatorBuilder: (_, __) =>
+                                          Divider(color: AppColors.getBorderColor(isDark), height: 1),
+                                      itemBuilder: (context, idx) {
+                                        final city = _cityResults[idx];
+                                        return ListTile(
+                                          dense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                                          leading: Icon(Icons.location_on, color: goldAccent, size: 20),
+                                          title: Text(
+                                            city.name,
+                                            style: TextStyle(
+                                              color: AppColors.getTextPrimary(isDark),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            '${city.state.isNotEmpty ? "${city.state}, " : ""}${city.country} • ${city.latitude.toStringAsFixed(4)}°, ${city.longitude.toStringAsFixed(4)}° (UTC+${city.timezone})',
+                                            style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 11),
+                                          ),
+                                          trailing: Icon(Icons.chevron_right, color: goldAccent, size: 16),
+                                          onTap: () => _selectCity(city),
+                                        );
+                                      },
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 24),
+
+                                // ─── Coordinates ───
+                                _buildSectionHeader(lang.l('coordinates'), Icons.my_location, goldAccent),
+                                const SizedBox(height: 12),
+                                if (isWide)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _latController,
+                                          label: lang.l('latitude'),
+                                          hint: '17.3850',
+                                          icon: Icons.north,
+                                          isDark: isDark,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Required';
+                                            double? val = double.tryParse(v);
+                                            if (val == null || val < -90 || val > 90) return 'Invalid (-90 to 90)';
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _lonController,
+                                          label: lang.l('longitude'),
+                                          hint: '78.4867',
+                                          icon: Icons.east,
+                                          isDark: isDark,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Required';
+                                            double? val = double.tryParse(v);
+                                            if (val == null || val < -180 || val > 180) return 'Invalid (-180 to 180)';
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _tzController,
+                                          label: lang.l('timezone'),
+                                          hint: '5.5',
+                                          icon: Icons.schedule,
+                                          isDark: isDark,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Required';
+                                            double? val = double.tryParse(v);
+                                            if (val == null || val < -12 || val > 14) return 'Invalid (-12 to 14)';
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else ...[
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _latController,
+                                          label: lang.l('latitude'),
+                                          hint: '17.3850',
+                                          icon: Icons.north,
+                                          isDark: isDark,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Required';
+                                            double? val = double.tryParse(v);
+                                            if (val == null || val < -90 || val > 90) return 'Invalid (-90 to 90)';
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _lonController,
+                                          label: lang.l('longitude'),
+                                          hint: '78.4867',
+                                          icon: Icons.east,
+                                          isDark: isDark,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Required';
+                                            double? val = double.tryParse(v);
+                                            if (val == null || val < -180 || val > 180) return 'Invalid (-180 to 180)';
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildTextField(
+                                    controller: _tzController,
+                                    label: lang.l('timezone'),
+                                    hint: '5.5',
+                                    icon: Icons.schedule,
+                                    isDark: isDark,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty) return 'Required';
+                                      double? val = double.tryParse(v);
+                                      if (val == null || val < -12 || val > 14) return 'Invalid (-12 to 14)';
+                                      return null;
+                                    },
+                                  ),
+                                ],
+
+                                const SizedBox(height: 36),
+
+                                // ─── Generate Button ───
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 56,
+                                  child: ElevatedButton(
+                                    onPressed: _generateChart,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: goldAccent,
+                                      foregroundColor: isDark ? AppColors.bgDark : Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: isDark ? 0 : 3,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.auto_awesome, size: 20),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          lang.l('generate'),
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1),
+
+                                const SizedBox(height: 40),
                               ],
                             ),
                           ),
-                        ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1),
-
-                        const SizedBox(height: 40),
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSectionHeader(String title, IconData icon, Color goldAccent) {
     return Row(
       children: [
-        Icon(icon, color: AppColors.gold, size: 18),
+        Icon(icon, color: goldAccent, size: 18),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
-            color: AppColors.gold,
+          style: TextStyle(
+            color: goldAccent,
             fontSize: 14,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
@@ -532,44 +639,45 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     IconData? icon,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
+    required bool isDark,
   }) {
     return TextFormField(
       controller: controller,
       validator: validator,
       keyboardType: keyboardType,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+      style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: icon != null ? Icon(icon, color: AppColors.textMuted, size: 20) : null,
+        prefixIcon: icon != null ? Icon(icon, color: AppColors.getTextMuted(isDark), size: 20) : null,
       ),
     );
   }
 
-  Widget _buildDatePicker(LanguageProvider lang) {
+  Widget _buildDatePicker(LanguageProvider lang, bool isDark) {
     return GestureDetector(
-      onTap: _pickDate,
+      onTap: () => _pickDate(isDark),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.bgCardLight,
+          color: AppColors.getCardLightColor(isDark),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.chartBorder),
+          border: Border.all(color: AppColors.getBorderColor(isDark)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, color: AppColors.textMuted, size: 18),
+            Icon(Icons.calendar_today, color: AppColors.getTextMuted(isDark), size: 18),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   lang.l('date'),
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                  style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 10),
                 ),
                 Text(
                   DateFormat('dd MMM yyyy').format(_selectedDate),
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -579,30 +687,30 @@ class _BirthInputScreenState extends State<BirthInputScreen> {
     );
   }
 
-  Widget _buildTimePicker(LanguageProvider lang) {
+  Widget _buildTimePicker(LanguageProvider lang, bool isDark) {
     return GestureDetector(
-      onTap: _pickTime,
+      onTap: () => _pickTime(isDark),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.bgCardLight,
+          color: AppColors.getCardLightColor(isDark),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.chartBorder),
+          border: Border.all(color: AppColors.getBorderColor(isDark)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.access_time, color: AppColors.textMuted, size: 18),
+            Icon(Icons.access_time, color: AppColors.getTextMuted(isDark), size: 18),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   lang.l('time'),
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
+                  style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 10),
                 ),
                 Text(
                   _selectedTime.format(context),
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ],
             ),

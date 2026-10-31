@@ -42,7 +42,7 @@ class KundaliReportScreen extends StatelessWidget {
     sb.writeln('─── 1. PLANETARY POSITIONS (NIRAYANA D1) ───');
     sb.writeln('Lagna (Ascendant): ${chartData.ascendant.rashi} ${(chartData.ascendant.longitude % 30).toStringAsFixed(2)}° (${chartData.ascendant.nakshatra} Pada ${chartData.ascendant.pada})');
     for (final p in chartData.planets) {
-      sb.writeln('${p.name.padRight(9)}: ${p.rashi.padRight(12)} ${(p.longitude % 30).toStringAsFixed(2).padLeft(5)}° | ${p.nakshatra.padRight(16)} P${p.pada} | ${p.dignity}${p.isRetrograde ? " (R)" : ""}');
+      sb.writeln('${p.name.padRight(9)}: ${p.rashi.padRight(12)} ${(p.longitude % 30).toStringAsFixed(2).padLeft(5)}° | ${p.nakshatra.padRight(16)} P${p.pada} | ${p.dignity}${p.isRetrograde ? " (R)" : ""}${p.isCombust ? " (c)" : ""}');
     }
     sb.writeln('');
 

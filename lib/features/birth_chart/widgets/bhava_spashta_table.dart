@@ -27,18 +27,20 @@ class BhavaSpashtaTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lagnaLon = chartData.ascendant.longitude;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final goldAccent = AppColors.getGold(isDark);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.table_chart_outlined, color: AppColors.gold, size: 18),
-            SizedBox(width: 8),
+            Icon(Icons.table_chart_outlined, color: goldAccent, size: 18),
+            const SizedBox(width: 8),
             Text(
               'భావ స్పష్ట పట్టిక (12 Houses Bhava Spashta)',
               style: TextStyle(
-                color: AppColors.gold,
+                color: goldAccent,
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
@@ -48,9 +50,9 @@ class BhavaSpashtaTable extends StatelessWidget {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.bgElevated,
+            color: AppColors.getElevatedColor(isDark),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.chartBorder),
+            border: Border.all(color: AppColors.getBorderColor(isDark)),
           ),
           child: Column(
             children: List.generate(12, (i) {
@@ -63,31 +65,31 @@ class BhavaSpashtaTable extends StatelessWidget {
 
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: AppColors.chartBorder, width: 0.5)),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: AppColors.getBorderColor(isDark).withValues(alpha: 0.4), width: 0.5)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '$hవ భావము',
-                      style: const TextStyle(
-                        color: AppColors.gold,
+                      style: TextStyle(
+                        color: goldAccent,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
                     ),
                     Text(
                       '${formatDms(startLon)} → ${formatDms(midLon)} → ${formatDms(endLon)}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: AppColors.getTextSecondary(isDark),
                         fontSize: 10.5,
                       ),
                     ),
                     Text(
                       lord,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: AppColors.getTextPrimary(isDark),
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),

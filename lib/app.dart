@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/constants/language_provider.dart';
 import 'features/home/home_screen.dart';
 
@@ -10,14 +12,19 @@ class JhoraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
-      child: Consumer<LanguageProvider>(
-        builder: (context, langProvider, _) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+      ],
+      child: Consumer2<ThemeProvider, LanguageProvider>(
+        builder: (context, themeProvider, langProvider, _) {
           return MaterialApp(
             title: langProvider.l('app_name'),
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.darkTheme,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
             home: const HomeScreen(),
           );
         },

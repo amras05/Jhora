@@ -572,7 +572,9 @@ class TeluguPdfDocumentBuilder {
     for (final p in chart.planets) {
       int signIdx = type == 'D9' ? p.navamsaRashiIndex : p.rashiIndex;
       final abbr = AstroConstants.planetAbbrTelugu[p.name] ?? p.abbreviation;
-      occupants[signIdx].add(p.isRetrograde ? '$abbr(వ)' : abbr);
+      final retro = p.isRetrograde ? '(వ)' : '';
+      final combust = p.isCombust ? '(మౌ)' : '';
+      occupants[signIdx].add('$abbr$retro$combust');
     }
 
     const double chartSize = 160;
@@ -704,7 +706,7 @@ class TeluguPdfDocumentBuilder {
           return pw.TableRow(
             decoration: pw.BoxDecoration(color: p.isRetrograde ? PdfColor.fromInt(0xFFFFF3E0) : PdfColors.white),
             children: [
-              pw.Padding(padding: const pw.EdgeInsets.all(1.5), child: pw.Text('$pTel${p.isRetrograde ? " (వ)" : ""}', style: pw.TextStyle(font: fontBold, fontSize: 7), textAlign: pw.TextAlign.center)),
+              pw.Padding(padding: const pw.EdgeInsets.all(1.5), child: pw.Text('$pTel${p.isRetrograde ? " (వ)" : ""}${p.isCombust ? " (మౌ)" : ""}', style: pw.TextStyle(font: fontBold, fontSize: 7), textAlign: pw.TextAlign.center)),
               pw.Padding(padding: const pw.EdgeInsets.all(1.5), child: pw.Text(rTel, style: const pw.TextStyle(fontSize: 7), textAlign: pw.TextAlign.center)),
               pw.Padding(padding: const pw.EdgeInsets.all(1.5), child: pw.Text(_formatDms(p.degreesInRashi), style: const pw.TextStyle(fontSize: 7), textAlign: pw.TextAlign.center)),
               pw.Padding(padding: const pw.EdgeInsets.all(1.5), child: pw.Text(nTel, style: const pw.TextStyle(fontSize: 7), textAlign: pw.TextAlign.center)),

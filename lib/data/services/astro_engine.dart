@@ -42,12 +42,67 @@ class AstroEngine {
     return calculateChart(birth);
   }
 
+  /// Classical Parashara combustion check against the Sun.
+  /// Standard combustion limits from Sun in degrees:
+  /// - Moon: 12°
+  /// - Mars: 17°
+  /// - Mercury: 14° (direct), 12° (retrograde)
+  /// - Jupiter: 11°
+  /// - Venus: 10° (direct), 8° (retrograde)
+  /// - Saturn: 15°
+  /// - Sun, Rahu, Ketu, Ascendant: Never combust
+  static bool isPlanetCombust({
+    required String name,
+    required double planetLongitude,
+    required double sunLongitude,
+    required bool isRetrograde,
+  }) {
+    if (name == 'Sun' || name == 'Rahu' || name == 'Ketu' || name == 'Ascendant') {
+      return false;
+    }
+
+    double diff = (planetLongitude - sunLongitude).abs() % 360.0;
+    double angularDist = diff > 180.0 ? 360.0 - diff : diff;
+
+    switch (name) {
+      case 'Moon':
+        return angularDist <= 12.0;
+      case 'Mars':
+        return angularDist <= 17.0;
+      case 'Mercury':
+        return isRetrograde ? angularDist <= 12.0 : angularDist <= 14.0;
+      case 'Jupiter':
+        return angularDist <= 11.0;
+      case 'Venus':
+        return isRetrograde ? angularDist <= 8.0 : angularDist <= 10.0;
+      case 'Saturn':
+        return angularDist <= 15.0;
+      default:
+        return false;
+    }
+  }
+
   static ChartData _fromSwissEphemerisJson(Map<String, dynamic> data, BirthData birth) {
     final ascJson = data['ascendant'] as Map<String, dynamic>;
     final ascendant = PlanetPosition.fromJson(ascJson);
 
     final planetsJson = data['planets'] as List<dynamic>;
-    final planets = planetsJson.map((p) => PlanetPosition.fromJson(p as Map<String, dynamic>)).toList();
+    List<PlanetPosition> planets = planetsJson.map((p) => PlanetPosition.fromJson(p as Map<String, dynamic>)).toList();
+
+    // Verify combustion against Sun
+    final sunPos = planets.firstWhere((p) => p.name == 'Sun', orElse: () => planets.first);
+    planets = planets.map((p) {
+      if (p.name == 'Sun' || p.name == 'Rahu' || p.name == 'Ketu' || p.name == 'Ascendant') {
+        return p;
+      }
+      final combust = p.isCombust || isPlanetCombust(
+        name: p.name,
+        planetLongitude: p.longitude,
+        sunLongitude: sunPos.longitude,
+        isRetrograde: p.isRetrograde,
+      );
+      return p.copyWith(isCombust: combust);
+    }).toList();
 
     final ayanamsa = (data['ayanamsa'] as num).toDouble();
 
@@ -121,14 +176,17 @@ class AstroEngine {
 
     PlanetPosition ascendant = PlanetPosition(name: 'Ascendant', longitude: ascSid);
 
+    bool checkCombust(String name, double lon, bool isRetro) =>
+        isPlanetCombust(name: name, planetLongitude: lon, sunLongitude: sunSid, isRetrograde: isRetro);
+
     List<PlanetPosition> planets = [
       PlanetPosition(name: 'Sun', longitude: sunSid, speed: sunSpd),
-      PlanetPosition(name: 'Moon', longitude: moonSid, speed: moonSpd),
-      PlanetPosition(name: 'Mars', longitude: marsSid, speed: marsSpd, isRetrograde: marsSpd < 0),
-      PlanetPosition(name: 'Mercury', longitude: mercSid, speed: mercSpd, isRetrograde: mercSpd < 0),
-      PlanetPosition(name: 'Jupiter', longitude: jupSid, speed: jupSpd, isRetrograde: jupSpd < 0),
-      PlanetPosition(name: 'Venus', longitude: venSid, speed: venSpd, isRetrograde: venSpd < 0),
-      PlanetPosition(name: 'Saturn', longitude: satSid, speed: satSpd, isRetrograde: satSpd < 0),
+      PlanetPosition(name: 'Moon', longitude: moonSid, speed: moonSpd, isCombust: checkCombust('Moon', moonSid, false)),
+      PlanetPosition(name: 'Mars', longitude: marsSid, speed: marsSpd, isRetrograde: marsSpd < 0, isCombust: checkCombust('Mars', marsSid, marsSpd < 0)),
+      PlanetPosition(name: 'Mercury', longitude: mercSid, speed: mercSpd, isRetrograde: mercSpd < 0, isCombust: checkCombust('Mercury', mercSid, mercSpd < 0)),
+      PlanetPosition(name: 'Jupiter', longitude: jupSid, speed: jupSpd, isRetrograde: jupSpd < 0, isCombust: checkCombust('Jupiter', jupSid, jupSpd < 0)),
+      PlanetPosition(name: 'Venus', longitude: venSid, speed: venSpd, isRetrograde: venSpd < 0, isCombust: checkCombust('Venus', venSid, venSpd < 0)),
+      PlanetPosition(name: 'Saturn', longitude: satSid, speed: satSpd, isRetrograde: satSpd < 0, isCombust: checkCombust('Saturn', satSid, satSpd < 0)),
       PlanetPosition(name: 'Rahu', longitude: rahuSid, isRetrograde: true),
       PlanetPosition(name: 'Ketu', longitude: ketuSid, isRetrograde: true),
     ];

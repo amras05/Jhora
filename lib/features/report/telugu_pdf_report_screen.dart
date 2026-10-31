@@ -299,7 +299,7 @@ class _TeluguPdfReportScreenState extends State<TeluguPdfReportScreen> {
               _buildInfoTable([
                 ('లగ్నము (Ascendant):', '${AstroConstants.rashisTelugu[widget.chartData.ascendant.rashiIndex]} (${_formatDms(widget.chartData.ascendant.degreesInRashi)})'),
                 ...widget.chartData.planets.map((p) => (
-                  '${AstroConstants.planetNamesTelugu[p.name] ?? p.name}${p.isRetrograde ? " (వక్రం)" : ""}:',
+                  '${AstroConstants.planetNamesTelugu[p.name] ?? p.name}${p.isRetrograde ? " (వక్రం)" : ""}${p.isCombust ? " (మౌఢ్యం)" : ""}:',
                   '${AstroConstants.rashisTelugu[p.rashiIndex]} (${_formatDms(p.degreesInRashi)}) • ${AstroConstants.nakshatrasTelugu[p.nakshatraIndex]} ${p.pada}వ పాదం'
                 )),
               ]),

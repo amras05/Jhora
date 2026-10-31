@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/constants/language_provider.dart';
 import '../../data/models/birth_data.dart';
 import '../../data/services/saved_horoscope_service.dart';
@@ -35,14 +36,26 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+    final goldAccent = AppColors.getGold(isDark);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(lang.l('saved_charts')),
-        backgroundColor: AppColors.bgDark.withValues(alpha: 0.95),
+        backgroundColor: AppColors.getBackgroundColor(isDark).withValues(alpha: 0.95),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: AppColors.gold),
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              color: goldAccent,
+              size: 20,
+            ),
+            tooltip: isDark ? 'Day Mode' : 'Night Mode',
+            onPressed: () => themeProvider.toggleTheme(),
+          ),
+          IconButton(
+            icon: Icon(Icons.add, color: goldAccent),
             onPressed: () async {
               await Navigator.push(
                 context,
@@ -51,60 +64,73 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
               _reload();
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+        decoration: BoxDecoration(gradient: AppColors.getBgGradient(isDark)),
         child: SafeArea(
-          child: FutureBuilder<List<BirthData>>(
-            future: _profilesFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: AppColors.gold));
-              }
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 600;
+              final maxContentWidth = isWide ? 720.0 : double.infinity;
 
-              final allProfiles = snapshot.data ?? [];
-              final profiles = _searchQuery.isEmpty
-                  ? allProfiles
-                  : allProfiles.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: FutureBuilder<List<BirthData>>(
+                    future: _profilesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator(color: goldAccent));
+                      }
 
-              if (allProfiles.isEmpty) {
-                return _buildEmptyState(lang);
-              }
+                      final allProfiles = snapshot.data ?? [];
+                      final profiles = _searchQuery.isEmpty
+                          ? allProfiles
+                          : allProfiles.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
-              return Column(
-                children: [
-                  if (allProfiles.length > 4)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: TextField(
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: 'Search saved profiles...',
-                          prefixIcon: const Icon(Icons.search, color: AppColors.gold, size: 20),
-                          fillColor: AppColors.bgCard,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.chartBorder),
+                      if (allProfiles.isEmpty) {
+                        return _buildEmptyState(lang, isDark, goldAccent);
+                      }
+
+                      return Column(
+                        children: [
+                          if (allProfiles.length > 4)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: TextField(
+                                style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Search saved profiles...',
+                                  prefixIcon: Icon(Icons.search, color: goldAccent, size: 20),
+                                  fillColor: AppColors.getCardColor(isDark),
+                                  filled: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: AppColors.getBorderColor(isDark)),
+                                  ),
+                                ),
+                                onChanged: (q) => setState(() => _searchQuery = q.trim()),
+                              ),
+                            ),
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: profiles.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final birth = profiles[index];
+                                return _buildProfileCard(birth, lang, index, isDark, goldAccent);
+                              },
+                            ),
                           ),
-                        ),
-                        onChanged: (q) => setState(() => _searchQuery = q.trim()),
-                      ),
-                    ),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: profiles.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final birth = profiles[index];
-                        return _buildProfileCard(birth, lang, index);
-                      },
-                    ),
+                        ],
+                      );
+                    },
                   ),
-                ],
+                ),
               );
             },
           ),
@@ -113,7 +139,7 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
     );
   }
 
-  Widget _buildEmptyState(LanguageProvider lang) {
+  Widget _buildEmptyState(LanguageProvider lang, bool isDark, Color goldAccent) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -124,22 +150,22 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.1),
+                color: goldAccent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                border: Border.all(color: goldAccent.withValues(alpha: 0.3)),
               ),
-              child: const Icon(Icons.bookmark_border, color: AppColors.gold, size: 38),
+              child: Icon(Icons.bookmark_border, color: goldAccent, size: 38),
             ),
             const SizedBox(height: 20),
             Text(
               lang.l('saved_charts'),
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(color: AppColors.getTextPrimary(isDark), fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'No horoscopes saved yet. Create a birth chart and tap the save icon to access it anytime.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 13),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -153,8 +179,8 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
               icon: const Icon(Icons.add, size: 18),
               label: Text(lang.l('new_horoscope')),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.gold,
-                foregroundColor: AppColors.bgDark,
+                backgroundColor: goldAccent,
+                foregroundColor: isDark ? AppColors.bgDark : Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -165,7 +191,7 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  Widget _buildProfileCard(BirthData birth, LanguageProvider lang, int index) {
+  Widget _buildProfileCard(BirthData birth, LanguageProvider lang, int index, bool isDark, Color goldAccent) {
     return Dismissible(
       key: ValueKey('${birth.name}_${birth.dateTime}_${birth.latitude}'),
       direction: DismissDirection.endToStart,
@@ -185,7 +211,7 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${birth.name} deleted'),
-            backgroundColor: AppColors.bgCard,
+            backgroundColor: AppColors.getCardColor(isDark),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -202,9 +228,18 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.bgCard,
+            color: AppColors.getCardColor(isDark),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.chartBorder, width: 0.8),
+            border: Border.all(color: AppColors.getBorderColor(isDark), width: 0.8),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Row(
             children: [
@@ -214,18 +249,18 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.gold.withValues(alpha: 0.25),
-                      AppColors.gold.withValues(alpha: 0.08),
+                      goldAccent.withValues(alpha: 0.25),
+                      goldAccent.withValues(alpha: 0.08),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  border: Border.all(color: goldAccent.withValues(alpha: 0.3)),
                 ),
                 child: Center(
                   child: Text(
                     birth.name.isNotEmpty ? birth.name.substring(0, 1).toUpperCase() : '☉',
-                    style: const TextStyle(
-                      color: AppColors.gold,
+                    style: TextStyle(
+                      color: goldAccent,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -239,8 +274,8 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
                   children: [
                     Text(
                       birth.name.isEmpty ? 'Unnamed Horoscope' : birth.name,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: AppColors.getTextPrimary(isDark),
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -249,13 +284,13 @@ class _SavedHoroscopesScreenState extends State<SavedHoroscopesScreen> {
                     const SizedBox(height: 3),
                     Text(
                       '${DateFormat('dd MMM yyyy, hh:mm a').format(birth.dateTime)} • ${birth.placeName}',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                      style: TextStyle(color: AppColors.getTextMuted(isDark), fontSize: 11),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.gold, size: 20),
+              Icon(Icons.chevron_right, color: goldAccent, size: 20),
             ],
           ),
         ),

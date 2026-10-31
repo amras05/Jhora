@@ -7,6 +7,7 @@ class PlanetPosition {
   final double latitude;       // Celestial latitude
   final double speed;          // Daily motion in degrees
   final bool isRetrograde;
+  final bool isCombust;        // Astangata / Moudhya / Combusted by proximity to Sun
 
   // Optional pre-computed divisional chart indexes
   final int? precomputedNavamsa;
@@ -21,6 +22,7 @@ class PlanetPosition {
     this.latitude = 0,
     this.speed = 0,
     this.isRetrograde = false,
+    this.isCombust = false,
     this.precomputedNavamsa,
     this.precomputedDasamsa,
     this.precomputedSaptamsa,
@@ -143,8 +145,13 @@ class PlanetPosition {
   /// Get English abbreviation for chart display
   String get abbreviation => AstroConstants.planetAbbr[name] ?? name.substring(0, 2);
 
-  /// Display string with retrograde marker
-  String get displayAbbr => isRetrograde ? '$abbreviation(R)' : abbreviation;
+  /// Display string with retrograde and combustion markers
+  String get displayAbbr {
+    String res = abbreviation;
+    if (isRetrograde) res += '(R)';
+    if (isCombust) res += '(c)';
+    return res;
+  }
 
   /// Planet dignity in current rashi
   String get dignity {
@@ -160,12 +167,39 @@ class PlanetPosition {
     return 'Neutral';
   }
 
+  PlanetPosition copyWith({
+    String? name,
+    double? longitude,
+    double? latitude,
+    double? speed,
+    bool? isRetrograde,
+    bool? isCombust,
+    int? precomputedNavamsa,
+    int? precomputedDasamsa,
+    int? precomputedSaptamsa,
+    int? precomputedDrekkana,
+    int? precomputedDvadasamsa,
+  }) => PlanetPosition(
+    name: name ?? this.name,
+    longitude: longitude ?? this.longitude,
+    latitude: latitude ?? this.latitude,
+    speed: speed ?? this.speed,
+    isRetrograde: isRetrograde ?? this.isRetrograde,
+    isCombust: isCombust ?? this.isCombust,
+    precomputedNavamsa: precomputedNavamsa ?? this.precomputedNavamsa,
+    precomputedDasamsa: precomputedDasamsa ?? this.precomputedDasamsa,
+    precomputedSaptamsa: precomputedSaptamsa ?? this.precomputedSaptamsa,
+    precomputedDrekkana: precomputedDrekkana ?? this.precomputedDrekkana,
+    precomputedDvadasamsa: precomputedDvadasamsa ?? this.precomputedDvadasamsa,
+  );
+
   factory PlanetPosition.fromJson(Map<String, dynamic> json) => PlanetPosition(
     name: json['name'] as String,
     longitude: (json['longitude'] as num).toDouble(),
     latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
     speed: (json['speed'] as num?)?.toDouble() ?? 0.0,
     isRetrograde: json['isRetrograde'] as bool? ?? false,
+    isCombust: json['isCombust'] as bool? ?? false,
     precomputedNavamsa: json['navamsaRashiIndex'] as int?,
     precomputedDasamsa: json['dasamsaRashiIndex'] as int?,
     precomputedSaptamsa: json['saptamsaRashiIndex'] as int?,
@@ -174,5 +208,5 @@ class PlanetPosition {
   );
 
   @override
-  String toString() => '$name: $fullPosition (Nak: $nakshatra P$pada) ${isRetrograde ? "(R)" : ""}';
+  String toString() => '$name: $fullPosition (Nak: $nakshatra P$pada) ${isRetrograde ? "(R)" : ""} ${isCombust ? "(c)" : ""}'.trim();
 }
