@@ -249,7 +249,7 @@ class _ChartResultScreenState extends State<ChartResultScreen>
                         ),
                       ],
                       bottom: PreferredSize(
-                        preferredSize: const Size.fromHeight(48),
+                        preferredSize: const Size.fromHeight(50),
                         child: TabBar(
                           controller: _tabController,
                           isScrollable: true,

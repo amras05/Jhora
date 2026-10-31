@@ -1,5 +1,6 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:js' as js;
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -39,5 +40,11 @@ void openHtmlInNewTabWeb(String content) {
 }
 
 void downloadPdfFromHtmlWeb({required String filename, required String htmlContent}) {
+  try {
+    if (js.context.hasProperty('downloadHtmlAsPdf')) {
+      js.context.callMethod('downloadHtmlAsPdf', [htmlContent, filename]);
+      return;
+    }
+  } catch (_) {}
   openHtmlInNewTabWeb(htmlContent);
 }
