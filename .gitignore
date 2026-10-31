@@ -1,3 +1,57 @@
 /jh_full_install.exe
 /jhora_mobile_release.apk
 /JhoraMobile_v1.apk
+
+# Compiled Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.env/
+
+# Environment variables
+.env
+*.env
+
+# Logs
+logs/
+*.log
+*.txt
+
+# Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Distribution / Packaging
+.Python/
+build/
+dist/
+*.egg-info/
+wheels/
+*.tar
+*.tar.gz
+
+# Deployment
+.deploy/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db3
+
+# Misc
+.DS_Store
+
+.agents/
+AGENTS.md
