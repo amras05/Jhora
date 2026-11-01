@@ -413,13 +413,16 @@ export class AstroEngine {
 
     const sunTrop = this._sunGeocentricLongitude(t);
     const sunDist = 1.00014 - 0.01671 * Math.cos(this._normalize(357.52911 + 35999.05029 * t) * DEG2RAD);
-    const xEarth = -sunDist * Math.cos(sunTrop * DEG2RAD);
-    const yEarth = -sunDist * Math.sin(sunTrop * DEG2RAD);
+    const prec = 1.396971 * t + 0.0003086 * t * t; // precession since J2000 (deg)
+    const sunJ2000 = this._normalize(sunTrop - prec);
+    const xEarth = -sunDist * Math.cos(sunJ2000 * DEG2RAD);
+    const yEarth = -sunDist * Math.sin(sunJ2000 * DEG2RAD);
 
     const xGeo = xEcl - xEarth;
     const yGeo = yEcl - yEarth;
 
-    return this._normalize(Math.atan2(yGeo, xGeo) * RAD2DEG);
+    const lonJ2000 = Math.atan2(yGeo, xGeo) * RAD2DEG;
+    return this._normalize(lonJ2000 + prec); // of-date tropical
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -546,44 +549,124 @@ export class AstroEngine {
   private static _calculateSpecialPoints(chart: ChartData): SpecialPointsResult {
     const moon = chart.planets.find(p => p.name === 'Moon') || chart.planets[1];
     const rahu = chart.planets.find(p => p.name === 'Rahu') || chart.planets[7];
-    const bhriguDeg = (moon.longitude + rahu.longitude) / 2.0;
+    const sun = chart.planets.find(p => p.name === 'Sun') || chart.planets[0];
+
+    // 1. Classical Bhrigu Bindu: Midpoint of forward arc from Rahu to Moon
+    const arc = (moon.longitude - rahu.longitude + 360.0) % 360.0;
+    const bhriguDeg = (rahu.longitude + arc / 2.0) % 360.0;
     const bhriguRashiIdx = Math.floor(bhriguDeg / 30.0) % 12;
     const bhriguHouse = ((bhriguRashiIdx - chart.ascendant.rashiIndex + 12) % 12) + 1;
+
+    // 2. Dynamic Yogi & Sahayogi Calculation
+    // Yogi Point = (Sun Nirayana + Moon Nirayana + 93°20' [Pushya point]) % 360°
+    const yogiDeg = (sun.longitude + moon.longitude + 93.33333333333333) % 360.0;
+    const yogiNakIdx = Math.floor(yogiDeg / (360.0 / 27.0)) % 27;
+    const yogiRashiIdx = Math.floor(yogiDeg / 30.0) % 12;
+
+    const yogiPlanet = AstroConstants.nakshatraLordsTelugu[yogiNakIdx] || 'గురుడు';
+    const yogiRashi = AstroConstants.rashisTelugu[yogiRashiIdx] || 'మీనం';
+    const yogiNakshatra = AstroConstants.nakshatrasTelugu[yogiNakIdx] || 'పూర్వాభాద్ర';
+    const sahayogiPlanet = AstroConstants.rashiLordsTelugu[yogiRashiIdx] || 'శని';
+
+    // 3. Dynamic Avayogi Calculation (6th Nakshatra from Yogi Nakshatra)
+    const avayogiNakIdx = (yogiNakIdx + 5) % 27;
+    const avayogiDeg = (avayogiNakIdx * (360.0 / 27.0) + (360.0 / 54.0)) % 360.0;
+    const avayogiRashiIdx = Math.floor(avayogiDeg / 30.0) % 12;
+
+    const avayogiPlanet = AstroConstants.nakshatraLordsTelugu[avayogiNakIdx] || 'సూర్యుడు';
+    const avayogiRashi = AstroConstants.rashisTelugu[avayogiRashiIdx] || 'కన్య';
+    const avayogiNakshatra = AstroConstants.nakshatrasTelugu[avayogiNakIdx] || 'హస్త';
+
+    // 4. Dynamic 7 Jaimini Chara Karakas
+    // Sort the 7 primary planets (excluding Rahu/Ketu) by degrees within sign in descending order
+    const karakaLabels = [
+      { name: 'Atmakaraka (AK)', nameTelugu: 'ఆత్మకారకుడు (AK)' },
+      { name: 'Amatyakaraka (AmK)', nameTelugu: 'అమాత్యకారకుడు (AmK)' },
+      { name: 'Bhratrukaraka (BK)', nameTelugu: 'భ్రాతృకారకుడు (BK)' },
+      { name: 'Matrukaraka (MK)', nameTelugu: 'మాతృకారకుడు (MK)' },
+      { name: 'Putrakaraka (PK)', nameTelugu: 'పుత్రకారకుడు (PK)' },
+      { name: 'Gnatikaraka (GK)', nameTelugu: 'జ్ఞాతికారుడు (GK)' },
+      { name: 'Darakaraka (DK)', nameTelugu: 'దారకారకుడు (DK)' },
+    ];
+
+    const eligiblePlanets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+    const sortedPlanets = chart.planets
+      .filter(p => eligiblePlanets.includes(p.name))
+      .sort((a, b) => b.degreesInRashi - a.degreesInRashi);
+
+    const charaKarakas = sortedPlanets.slice(0, 7).map((p, idx) => ({
+      name: karakaLabels[idx]?.name || `Karaka ${idx + 1}`,
+      nameTelugu: karakaLabels[idx]?.nameTelugu || `కారకుడు ${idx + 1}`,
+      planet: p.name,
+      planetTelugu: AstroConstants.planetNamesTelugu[p.name] || p.name,
+      rashiTelugu: AstroConstants.rashisTelugu[p.rashiIndex] || '',
+      degreeInRashi: Number(p.degreesInRashi.toFixed(2)),
+    }));
 
     return {
       bhriguBinduRashi: AstroConstants.rashisTelugu[bhriguRashiIdx],
       bhriguBinduRashiDeg: bhriguDeg % 30.0,
       bhriguBinduHouse: bhriguHouse,
-      yogiPlanet: 'గురుడు',
-      yogiRashi: 'మీనం',
-      yogiNakshatra: 'పూర్వాభాద్ర',
-      sahayogiPlanet: 'శని',
-      avayogiPlanet: 'సూర్యుడు',
-      avayogiRashi: 'కన్య',
-      avayogiNakshatra: 'హస్త',
-      charaKarakas: [
-        { name: 'Atmakaraka (AK)', nameTelugu: 'ఆత్మకారకుడు (AK)', planet: 'Saturn', planetTelugu: 'శని', rashiTelugu: 'కుంభం', degreeInRashi: 28.4 },
-        { name: 'Amatyakaraka (AmK)', nameTelugu: 'అమాత్యకారకుడు (AmK)', planet: 'Jupiter', planetTelugu: 'గురుడు', rashiTelugu: 'వృషభం', degreeInRashi: 24.1 },
-        { name: 'Bhratrukaraka (BK)', nameTelugu: 'భ్రాతృకారకుడు (BK)', planet: 'Mars', planetTelugu: 'కుజుడు', rashiTelugu: 'కర్కాటకం', degreeInRashi: 21.6 },
-        { name: 'Matrukaraka (MK)', nameTelugu: 'మాతృకారకుడు (MK)', planet: 'Sun', planetTelugu: 'సూర్యుడు', rashiTelugu: 'తుల', degreeInRashi: 14.8 },
-        { name: 'Putrakaraka (PK)', nameTelugu: 'పుత్రకారకుడు (PK)', planet: 'Venus', planetTelugu: 'శుక్రుడు', rashiTelugu: 'వృశ్చికం', degreeInRashi: 11.2 },
-        { name: 'Gnatikaraka (GK)', nameTelugu: 'జ్ఞాతికారుడు (GK)', planet: 'Mercury', planetTelugu: 'బుధుడు', rashiTelugu: 'తుల', degreeInRashi: 7.9 },
-        { name: 'Darakaraka (DK)', nameTelugu: 'దారకారకుడు (DK)', planet: 'Moon', planetTelugu: 'చంద్రుడు', rashiTelugu: 'కన్య', degreeInRashi: 3.4 },
-      ]
+      yogiPlanet,
+      yogiRashi,
+      yogiNakshatra,
+      sahayogiPlanet,
+      avayogiPlanet,
+      avayogiRashi,
+      avayogiNakshatra,
+      charaKarakas,
     };
   }
 
   private static _calculateDoshas(chart: ChartData): DoshaAnalysis {
+    const lagnaRashi = chart.ascendant.rashiIndex;
+    const moon = chart.planets.find(p => p.name === 'Moon') || chart.planets[1];
+    const mars = chart.planets.find(p => p.name === 'Mars') || chart.planets[2];
+    const rahu = chart.planets.find(p => p.name === 'Rahu') || chart.planets[7];
+    const ketu = chart.planets.find(p => p.name === 'Ketu') || chart.planets[8];
+
+    // Kuja Dosha (Mars in houses 1, 2, 4, 7, 8, 12 from Lagna or Moon)
+    const marsHouseFromLagna = ((mars.rashiIndex - lagnaRashi + 12) % 12) + 1;
+    const marsHouseFromMoon = ((mars.rashiIndex - moon.rashiIndex + 12) % 12) + 1;
+    const kujaHouses = [1, 2, 4, 7, 8, 12];
+    const hasKujaFromLagna = kujaHouses.includes(marsHouseFromLagna);
+    const hasKujaFromMoon = kujaHouses.includes(marsHouseFromMoon);
+    const hasKuja = hasKujaFromLagna || hasKujaFromMoon;
+
+    let kujaDesc = 'కుజ దోషము లేదు (అనుకూల స్థితి).';
+    if (hasKuja) {
+      const parts: string[] = [];
+      if (hasKujaFromLagna) parts.push(`లగ్నం నుండి ${marsHouseFromLagna}వ భావంలో కుజుడు`);
+      if (hasKujaFromMoon) parts.push(`చంద్రుని నుండి ${marsHouseFromMoon}వ భావంలో కుజుడు`);
+      kujaDesc = `కుజ దోష ప్రభావం కలదు (${parts.join(', ')}).`;
+    }
+
+    // Kaal Sarpa Dosha (all 7 planets on one side of Rahu-Ketu axis)
+    const planets7 = chart.planets.filter(p => !['Rahu', 'Ketu'].includes(p.name));
+    const rLon = rahu.longitude;
+    const kLon = ketu.longitude;
+    const side1 = planets7.every(p => {
+      const diff = (p.longitude - rLon + 360.0) % 360.0;
+      return diff >= 0 && diff <= 180.0;
+    });
+    const side2 = planets7.every(p => {
+      const diff = (p.longitude - kLon + 360.0) % 360.0;
+      return diff >= 0 && diff <= 180.0;
+    });
+    const hasKalaSarpa = side1 || side2;
+
     return {
       kujaDosha: {
-        hasDosha: false,
-        description: 'కుజ దోషము లేదు (అనుకూల స్థితి).'
+        hasDosha: hasKuja,
+        description: kujaDesc,
       },
       kaalSarpa: {
-        hasDosha: false,
-        teluguTypeName: 'కాలసర్ప దోషము లేదు',
-        description: 'సమస్త గ్రహములు రాహు-కేతువుల అక్షం వెలుపల శుభ స్థితిలో ఉన్నవి.'
-      }
+        hasDosha: hasKalaSarpa,
+        teluguTypeName: hasKalaSarpa ? 'కాలసర్ప దోషము కలదు' : 'కాలసర్ప దోషము లేదు',
+        description: hasKalaSarpa
+          ? 'సమస్త సప్త గ్రహములు రాహు-కేతువుల అక్షం నడుమ బంధింపబడినవి (కాలసర్ప యోగం/దోషం).'
+          : 'సమస్త గ్రహములు రాహు-కేతువుల అక్షం వెలుపల శుభ స్థితిలో ఉన్నవి.',
+      },
     };
   }
 

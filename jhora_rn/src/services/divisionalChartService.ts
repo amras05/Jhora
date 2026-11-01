@@ -184,14 +184,14 @@ export class DivisionalChartService {
 
       case DivisionalChartType.d30: {
         // Trimshamsha (Parashara):
-        // Odd signs: 0-5° Mars (Aries=0), 5-10° Saturn (Aquarius=10), 10-18° Jupiter (Sagittarius=8), 18-25° Mercury (Gemini=2), 25-30° Venus (Taurus=1).
+        // Odd signs: 0-5° Mars (Aries=0), 5-10° Saturn (Aquarius=10), 10-18° Jupiter (Sagittarius=8), 18-25° Mercury (Gemini=2), 25-30° Venus (Libra=6).
         // Even signs: 0-5° Venus (Taurus=1), 5-12° Mercury (Virgo=5), 12-20° Jupiter (Pisces=11), 20-25° Saturn (Capricorn=9), 25-30° Mars (Scorpio=7).
         if (isOdd) {
           if (degInRashi < 5.0) return 0;
           if (degInRashi < 10.0) return 10;
           if (degInRashi < 18.0) return 8;
           if (degInRashi < 25.0) return 2;
-          return 1;
+          return 6; // Libra (was 1 Taurus)
         } else {
           if (degInRashi < 5.0) return 1;
           if (degInRashi < 12.0) return 5;
