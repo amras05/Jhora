@@ -5,12 +5,15 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
   FlatList,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
-import { AppColors } from '../theme/appTheme';
+import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../i18n';
+import { Screen, AppBar, Card, SectionHeader, KeyValueRow } from '../components/ui';
+import { radius, spacing } from '../theme/tokens';
 import { CityDatabase, CityEntry } from '../services/cityDatabase';
 import { AstroEngine } from '../services/astroEngine';
 import { PanchangaData } from '../models/astroModels';
@@ -18,19 +21,15 @@ import { TeluguPdfReportGenerator } from '../services/teluguPdfReportGenerator';
 import { AstroConstants } from '../constants/astroConstants';
 
 interface Props {
-  isDark: boolean;
-  lang: 'te' | 'en';
   onBack: () => void;
+  // Optional for backward compatibility with App.tsx
+  isDark?: boolean;
+  lang?: 'te' | 'en';
 }
 
-export const PanchangaScreen: React.FC<Props> = ({ isDark, lang, onBack }) => {
-  const gold = AppColors.getGold(isDark);
-  const bg = AppColors.getBg(isDark);
-  const cardBg = AppColors.getCard(isDark);
-  const borderColor = AppColors.getBorder(isDark);
-  const textPrimary = AppColors.getTextPrimary(isDark);
-  const textSecondary = AppColors.getTextSecondary(isDark);
-  const isTe = lang === 'te';
+export const PanchangaScreen: React.FC<Props> = ({ onBack }) => {
+  const { colors, isDark } = useTheme();
+  const { t, isTe } = useI18n();
 
   const [date, setDate] = useState(new Date());
   const [city, setCity] = useState<CityEntry>(CityDatabase.cities[0]);
@@ -53,116 +52,197 @@ export const PanchangaScreen: React.FC<Props> = ({ isDark, lang, onBack }) => {
   // Calculate Panchangam
   const p: PanchangaData = AstroEngine.calculatePanchanga(date, city.latitude, city.longitude, city.timezone);
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-      {/* Top App Bar */}
-      <View style={[styles.appBar, { borderColor, backgroundColor: cardBg }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={[styles.backIcon, { color: gold }]}>‹</Text>
-        </TouchableOpacity>
-        <Text style={[styles.appBarTitle, { color: textPrimary }]}>
-          {isTe ? 'పంచాంగ దర్శిని (Panchangam)' : 'Daily Panchangam'}
-        </Text>
-        <TouchableOpacity onPress={() => setCityModal(true)} style={styles.cityBtn}>
-          <Text style={[styles.cityBtnText, { color: gold }]}>📍 {city.name}</Text>
-        </TouchableOpacity>
-      </View>
+  const tithiName =
+    p.tithiIndex !== undefined
+      ? `${p.paksha === 'Shukla Paksha' ? t('panchanga.pakshaShukla') : t('panchanga.pakshaKrishna')}${TeluguPdfReportGenerator.tithisTelugu[p.tithiIndex % 30]}`
+      : p.tithi || '';
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+  const nakshatraName =
+    p.nakshatraIndex !== undefined
+      ? AstroConstants.nakshatrasTelugu[p.nakshatraIndex % 27]
+      : p.nakshatra || '';
+
+  const yogaName =
+    p.yogaIndex !== undefined
+      ? TeluguPdfReportGenerator.yogasTelugu[p.yogaIndex % 27]
+      : p.yoga || '';
+
+  const karanaName =
+    TeluguPdfReportGenerator.karanasTelugu[p.karana] || p.karana;
+
+  const weekdayName = TeluguPdfReportGenerator.weekdaysTelugu[date.getDay() % 7];
+
+  return (
+    <Screen style={styles.container}>
+      <AppBar
+        title={t('panchanga.appBarTitle')}
+        onBack={onBack}
+        rightAction={
+          <TouchableOpacity
+            onPress={() => setCityModal(true)}
+            style={[styles.cityBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Select city"
+          >
+            <Text style={[styles.cityBtnText, { color: colors.gold }]}>
+              📍 {city.name}
+            </Text>
+          </TouchableOpacity>
+        }
+      />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Date Selector Row */}
-        <View style={[styles.dateRow, { backgroundColor: cardBg, borderColor }]}>
-          <TouchableOpacity onPress={() => changeDay(-1)} style={styles.navBtn}>
-            <Text style={{ fontSize: 16, color: gold }}>◀</Text>
+        <Card style={styles.dateCard}>
+          <TouchableOpacity
+            onPress={() => changeDay(-1)}
+            style={[styles.navBtn, { backgroundColor: colors.inputBg }]}
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+          >
+            <Text style={[styles.navArrow, { color: colors.gold }]}>◀</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setDate(new Date())} style={styles.dateCenter}>
-            <Text style={[styles.dateText, { color: textPrimary }]}>
+          <TouchableOpacity
+            onPress={() => setDate(new Date())}
+            style={styles.dateCenter}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.dateText, { color: colors.text }]}>
               {TeluguPdfReportGenerator.formatDate(date)}
             </Text>
-            <Text style={[styles.dayText, { color: textSecondary }]}>
-              {TeluguPdfReportGenerator.weekdaysTelugu[date.getDay() % 7]}
+            <Text style={[styles.dayText, { color: colors.gold }]}>
+              {weekdayName}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => changeDay(1)} style={styles.navBtn}>
-            <Text style={{ fontSize: 16, color: gold }}>▶</Text>
+          <TouchableOpacity
+            onPress={() => changeDay(1)}
+            style={[styles.navBtn, { backgroundColor: colors.inputBg }]}
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+          >
+            <Text style={[styles.navArrow, { color: colors.gold }]}>▶</Text>
           </TouchableOpacity>
-        </View>
+        </Card>
 
         {/* Primary Auspicious Elements */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-          <Text style={[styles.cardHeader, { color: AppColors.maroon }]}>
-            {isTe ? 'ప్రధాన పంచాంగ అంగములు' : 'Core Panchanga Elements'}
-          </Text>
+        <SectionHeader
+          title={t('panchanga.coreElementsHeader')}
+          icon="📖"
+        />
 
-          {[
-            {
-              k: isTe ? 'తిథి' : 'Tithi',
-              v: `${p.paksha === 'Shukla Paksha' ? 'శుక్ల పక్ష ' : 'కృష్ణ పక్ష '}${TeluguPdfReportGenerator.tithisTelugu[p.tithiIndex % 30]}`,
-            },
-            {
-              k: isTe ? 'నక్షత్రం' : 'Nakshatra',
-              v: AstroConstants.nakshatrasTelugu[Math.floor((date.getDate() * 1.5) % 27)],
-            },
-            {
-              k: isTe ? 'నిత్య యోగం' : 'Yoga',
-              v: TeluguPdfReportGenerator.yogasTelugu[p.yogaIndex % 27],
-            },
-            {
-              k: isTe ? 'కరణం' : 'Karana',
-              v: TeluguPdfReportGenerator.karanasTelugu[p.karana] || p.karana,
-            },
-            {
-              k: isTe ? 'వారం' : 'Weekday',
-              v: TeluguPdfReportGenerator.weekdaysTelugu[date.getDay() % 7],
-            },
-          ].map((row, i) => (
-            <View key={i} style={[styles.tableRow, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.tableKey, { color: textSecondary }]}>{row.k}:</Text>
-              <Text style={[styles.tableVal, { color: textPrimary, fontWeight: '700' }]}>{row.v}</Text>
-            </View>
-          ))}
-        </View>
+        <Card>
+          <KeyValueRow
+            label={t('panchanga.tithiLabel')}
+            value={tithiName}
+            icon="🌕"
+          />
+          <KeyValueRow
+            label={t('panchanga.nakshatraLabel')}
+            value={nakshatraName}
+            icon="⭐"
+          />
+          <KeyValueRow
+            label={t('panchanga.yogaLabel')}
+            value={yogaName}
+            icon="✨"
+          />
+          <KeyValueRow
+            label={t('panchanga.karanaLabel')}
+            value={karanaName}
+            icon="⚡"
+          />
+          <KeyValueRow
+            label={t('panchanga.weekdayLabel')}
+            value={weekdayName}
+            icon="📅"
+            borderBottom={false}
+          />
+        </Card>
 
-        {/* Solar Times */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor, marginTop: 12 }]}>
-          <Text style={[styles.cardHeader, { color: AppColors.maroon }]}>
-            {isTe ? 'సూర్యోదయ & ముహూర్త కాలములు' : 'Solar & Muhurtha Timings'}
-          </Text>
+        {/* Solar & Muhurtha Timings */}
+        <SectionHeader
+          title={t('panchanga.solarTimesHeader')}
+          icon="☀️"
+        />
 
-          {[
-            { k: 'సూర్యోదయం (Sunrise)', v: TeluguPdfReportGenerator.formatTime(p.sunrise) },
-            { k: 'సూర్యాస్తమయం (Sunset)', v: TeluguPdfReportGenerator.formatTime(p.sunset) },
-            { k: 'అభిజిత్ ముహూర్తం (శుభ సమయం)', v: `${TeluguPdfReportGenerator.formatTime(p.abhijitMuhurtha[0])} - ${TeluguPdfReportGenerator.formatTime(p.abhijitMuhurtha[1])}` },
-            { k: 'రాహు కాలం (వర్జ్యం)', v: `${TeluguPdfReportGenerator.formatTime(p.rahuKalam[0])} - ${TeluguPdfReportGenerator.formatTime(p.rahuKalam[1])}` },
-            { k: 'యమగండం', v: `${TeluguPdfReportGenerator.formatTime(p.yamagandam[0])} - ${TeluguPdfReportGenerator.formatTime(p.yamagandam[1])}` },
-            { k: 'గుళిక కాలం', v: `${TeluguPdfReportGenerator.formatTime(p.gulika[0])} - ${TeluguPdfReportGenerator.formatTime(p.gulika[1])}` },
-          ].map((row, i) => (
-            <View key={i} style={[styles.tableRow, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.tableKey, { color: textSecondary }]}>{row.k}:</Text>
-              <Text style={[styles.tableVal, { color: row.k.includes('అభిజిత్') ? '#166534' : row.k.includes('రాహు') ? '#DC2626' : textPrimary, fontWeight: '700' }]}>
-                {row.v}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <Card>
+          <KeyValueRow
+            label={t('panchanga.sunriseRow')}
+            value={TeluguPdfReportGenerator.formatTime(p.sunrise)}
+            icon="🌅"
+            valueColor={colors.gold}
+          />
+          <KeyValueRow
+            label={t('panchanga.sunsetRow')}
+            value={TeluguPdfReportGenerator.formatTime(p.sunset)}
+            icon="🌇"
+            valueColor={colors.accent.orange}
+          />
+          <KeyValueRow
+            label={t('panchanga.abhijitRow')}
+            value={`${TeluguPdfReportGenerator.formatTime(p.abhijitMuhurtha[0])} - ${TeluguPdfReportGenerator.formatTime(p.abhijitMuhurtha[1])}`}
+            icon="🌟"
+            valueColor={colors.accent.green}
+          />
+          <KeyValueRow
+            label={t('panchanga.rahuKalamRow')}
+            value={`${TeluguPdfReportGenerator.formatTime(p.rahuKalam[0])} - ${TeluguPdfReportGenerator.formatTime(p.rahuKalam[1])}`}
+            icon="⚠️"
+            valueColor={colors.accent.red}
+          />
+          <KeyValueRow
+            label={t('panchanga.yamagandamRow')}
+            value={`${TeluguPdfReportGenerator.formatTime(p.yamagandam[0])} - ${TeluguPdfReportGenerator.formatTime(p.yamagandam[1])}`}
+            icon="⏳"
+            valueColor={colors.accent.orange}
+          />
+          <KeyValueRow
+            label={t('panchanga.gulikaRow')}
+            value={`${TeluguPdfReportGenerator.formatTime(p.gulika[0])} - ${TeluguPdfReportGenerator.formatTime(p.gulika[1])}`}
+            icon="⏱️"
+            borderBottom={false}
+          />
+        </Card>
       </ScrollView>
 
       {/* City Search Modal */}
       <Modal visible={cityModal} animationType="slide" transparent>
-        <SafeAreaView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalBox, { backgroundColor: cardBg, borderColor }]}>
+        <SafeAreaView
+          style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
+        >
+          <View
+            style={[
+              styles.modalBox,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: textPrimary }]}>నగరాన్ని ఎంచుకోండి</Text>
-              <TouchableOpacity onPress={() => setCityModal(false)}>
-                <Text style={{ fontSize: 18, color: gold }}>✕</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {t('panchanga.cityModalTitle')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setCityModal(false)}
+                style={styles.closeBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Text style={[styles.closeIcon, { color: colors.gold }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <TextInput
-              style={[styles.input, { borderColor, color: textPrimary, backgroundColor: isDark ? '#1C110A' : '#FFFDF9', marginVertical: 10 }]}
-              placeholder="నగర పేరు నమోదు చేయండి..."
-              placeholderTextColor="#888"
+              style={[
+                styles.searchInput,
+                {
+                  borderColor: colors.border,
+                  color: colors.text,
+                  backgroundColor: colors.inputBg,
+                },
+              ]}
+              placeholder={t('panchanga.citySearchPlaceholder')}
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={handleSearch}
               autoFocus
@@ -173,14 +253,20 @@ export const PanchangaScreen: React.FC<Props> = ({ isDark, lang, onBack }) => {
               keyExtractor={item => `${item.name}-${item.latitude}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.cityItem, { borderBottomColor: borderColor }]}
+                  style={[
+                    styles.cityItem,
+                    { borderBottomColor: colors.border },
+                  ]}
                   onPress={() => {
                     setCity(item);
                     setCityModal(false);
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.cityName, { color: textPrimary }]}>{item.name}</Text>
-                  <Text style={[styles.cityDetails, { color: textSecondary }]}>
+                  <Text style={[styles.cityName, { color: colors.text }]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.cityDetails, { color: colors.textSecondary }]}>
                     {item.state} ({item.latitude}°N, {item.longitude}°E)
                   </Text>
                 </TouchableOpacity>
@@ -189,7 +275,7 @@ export const PanchangaScreen: React.FC<Props> = ({ isDark, lang, onBack }) => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 };
 
@@ -197,118 +283,94 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  backIcon: {
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  appBarTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
   },
   cityBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radius.full,
+    borderWidth: 1,
   },
   cityBtnText: {
     fontSize: 12,
     fontWeight: '700',
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  dateRow: {
+  dateCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginVertical: spacing.sm,
   },
   navBtn: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navArrow: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   dateCenter: {
     alignItems: 'center',
   },
   dateText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
   },
   dayText: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
-    fontWeight: '600',
-  },
-  card: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  cardHeader: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    marginBottom: 10,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    borderBottomWidth: 0.5,
-  },
-  tableKey: {
-    width: 160,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  tableVal: {
-    flex: 1,
-    fontSize: 12,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   modalBox: {
-    borderRadius: 12,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    padding: 16,
+    padding: spacing.lg,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.md,
   },
   modalTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
   },
-  input: {
+  closeBtn: {
+    padding: spacing.xs,
+  },
+  closeIcon: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  searchInput: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
+    marginBottom: spacing.md,
   },
   cityItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   cityName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   cityDetails: {
@@ -316,4 +378,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-

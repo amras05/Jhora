@@ -5,11 +5,13 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { AppColors } from '../theme/appTheme';
+import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../i18n';
+import { Screen, AppBar, Card, PrimaryButton } from '../components/ui';
+import { radius, spacing } from '../theme/tokens';
 import {
   ChartData,
   AshtakavargaData,
@@ -30,9 +32,10 @@ interface Props {
   panchanga: PanchangaData;
   dosha: DoshaAnalysis;
   dashas: DashaPeriod[];
-  isDark: boolean;
-  lang: 'te' | 'en';
   onBack: () => void;
+  // Optional for backward compatibility with App.tsx
+  isDark?: boolean;
+  lang?: 'te' | 'en';
 }
 
 export const TeluguPdfReportScreen: React.FC<Props> = ({
@@ -43,17 +46,10 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
   panchanga,
   dosha,
   dashas,
-  isDark,
-  lang,
   onBack,
 }) => {
-  const gold = AppColors.getGold(isDark);
-  const bg = AppColors.getBg(isDark);
-  const cardBg = AppColors.getCard(isDark);
-  const borderColor = AppColors.getBorder(isDark);
-  const textPrimary = AppColors.getTextPrimary(isDark);
-  const textSecondary = AppColors.getTextSecondary(isDark);
-  const isTe = lang === 'te';
+  const { colors } = useTheme();
+  const { t, isTe } = useI18n();
 
   const [exporting, setExporting] = useState(false);
 
@@ -71,12 +67,12 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
       });
 
       if (!res.success) {
-        Alert.alert(isTe ? 'లోపం' : 'Error', res.message);
+        Alert.alert(t('pdfReport.alertErrorTitle'), res.message);
       } else {
-        Alert.alert(isTe ? 'విజయవంతం' : 'Success', res.message);
+        Alert.alert(t('pdfReport.alertSuccessTitle'), res.message);
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'PDF Generation Error');
+      Alert.alert(t('pdfReport.alertErrorTitle'), e?.message || 'PDF Generation Error');
     } finally {
       setExporting(false);
     }
@@ -99,71 +95,79 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-      {/* Top Header */}
-      <View style={[styles.appBar, { borderColor, backgroundColor: cardBg }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={[styles.backIcon, { color: gold }]}>‹</Text>
-        </TouchableOpacity>
-        <Text style={[styles.appBarTitle, { color: textPrimary }]}>
-          {isTe ? 'సంపూర్ణ తెలుగు జాతక నివేదిక' : 'Full 25-Page Telugu Report'}
-        </Text>
-        <View style={{ width: 30 }} />
-      </View>
+    <Screen style={styles.container}>
+      <AppBar
+        title={t('pdfReport.appBarTitle')}
+        onBack={onBack}
+      />
 
       {/* Direct Save Action Bar */}
-      <View style={[styles.actionBanner, { backgroundColor: AppColors.maroonDark }]}>
-        <TouchableOpacity
-          style={[styles.downloadBtn, exporting && styles.btnDisabled]}
+      <View style={[styles.actionBanner, { backgroundColor: colors.primaryDark }]}>
+        <PrimaryButton
+          title={exporting ? t('pdfReport.downloadBtnExporting') : t('pdfReport.downloadBtnReady')}
           onPress={handleDownload}
-          disabled={exporting}
-          activeOpacity={0.8}
-        >
-          {exporting ? (
-            <ActivityIndicator color="#000" size="small" style={{ marginRight: 8 }} />
-          ) : (
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🖨️</Text>
-          )}
-          <Text style={styles.downloadBtnText}>
-            {exporting
-              ? '25 పుటల PDF సిద్ధమవుతోంది...'
-              : 'సంపూర్ణ 25 పుటల PDF డౌన్‌లోడ్ (Save as PDF)'}
-          </Text>
-        </TouchableOpacity>
+          loading={exporting}
+          variant="gold"
+          style={styles.downloadBtn}
+        />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Sacred Header Card */}
-        <View style={[styles.sacredCard, { backgroundColor: cardBg, borderColor: AppColors.maroon }]}>
-          <Text style={styles.blessing}>{TeluguPdfReportGenerator.blessingHeader}</Text>
-          <Text style={styles.guruBlessing}>❖ {TeluguPdfReportGenerator.guruBlessing} ❖</Text>
-          <Text style={styles.templeTitle}>{TeluguPdfReportGenerator.appTitle}</Text>
-          <Text style={styles.expertise}>{TeluguPdfReportGenerator.expertiseLine}</Text>
-          <View style={styles.scholarPill}>
-            <Text style={styles.scholarText}>{TeluguPdfReportGenerator.astrologerTitleAndMobile}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Sacred Header Preview Box */}
+        <Card
+          variant="outlined"
+          style={[styles.headerCard, { backgroundColor: colors.stripBg, borderColor: colors.border }]}
+        >
+          <Text style={[styles.blessingText, { color: colors.primary }]}>
+            {TeluguPdfReportGenerator.blessingHeader}
+          </Text>
+          <Text style={[styles.guruText, { color: colors.primaryDark }]}>
+            {TeluguPdfReportGenerator.guruBlessing}
+          </Text>
+          <Text style={[styles.templeTitle, { color: colors.primary }]}>
+            {TeluguPdfReportGenerator.appTitle}
+          </Text>
+          <Text style={[styles.expertiseText, { color: colors.textSecondary }]}>
+            {TeluguPdfReportGenerator.expertiseLine}
+          </Text>
+
+          <View style={[styles.scholarBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.scholarBadgeText}>
+              {TeluguPdfReportGenerator.astrologerTitleAndMobile}
+            </Text>
           </View>
-          <Text style={styles.shloka}>
+
+          <Text style={[styles.shlokaText, { color: colors.primary }]}>
             {TeluguPdfReportGenerator.invocationShloka}
           </Text>
-        </View>
+        </Card>
 
-        {/* 25 Pages Table of Contents */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor, marginTop: 12 }]}>
-          <Text style={[styles.cardHeader, { color: AppColors.maroon }]}>
-            📑 సంపూర్ణ 25 పుటల నివేదిక వివరాలు (25-Page Report Outline)
+        {/* 25-Page Outline */}
+        <Card style={styles.outlineCard}>
+          <Text style={[styles.outlineTitle, { color: colors.primary }]}>
+            {t('pdfReport.tocHeader')}
           </Text>
 
           {pagesSummary.map((item, idx) => (
-            <View key={idx} style={[styles.outlineItem, { borderBottomColor: borderColor }]}>
-              <View style={[styles.pageBadge, { backgroundColor: gold }]}>
+            <View
+              key={idx}
+              style={[
+                styles.pageRow,
+                { borderBottomColor: colors.border },
+                idx === pagesSummary.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View style={[styles.pageBadge, { backgroundColor: colors.gold }]}>
                 <Text style={styles.pageBadgeText}>{item.page}</Text>
               </View>
-              <Text style={[styles.outlineTitle, { color: textPrimary }]}>{item.title}</Text>
+              <Text style={[styles.pageTitle, { color: colors.textSecondary }]}>
+                {item.title}
+              </Text>
             </View>
           ))}
-        </View>
+        </Card>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 };
 
@@ -171,133 +175,93 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  backIcon: {
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  appBarTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
   actionBanner: {
-    padding: 10,
-    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   downloadBtn: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  btnDisabled: {
-    opacity: 0.7,
-  },
-  downloadBtnText: {
-    color: '#000',
-    fontSize: 13,
-    fontWeight: '800',
+    marginVertical: 0,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
   },
-  sacredCard: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
+  headerCard: {
     alignItems: 'center',
-    textAlign: 'center',
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  blessing: {
+  blessingText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#8B2500',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  guruBlessing: {
-    fontSize: 11,
+  guruText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#92400E',
-    marginTop: 2,
+    textAlign: 'center',
+    marginBottom: 6,
   },
   templeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#6B1111',
-    marginTop: 4,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  expertiseText: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  scholarBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
+    marginBottom: 8,
+  },
+  scholarBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
     textAlign: 'center',
   },
-  expertise: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#78350F',
-    marginTop: 2,
-  },
-  scholarPill: {
-    backgroundColor: '#6B1111',
-    paddingVertical: 4,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-  scholarText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  shloka: {
+  shlokaText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#6B1111',
-    marginTop: 8,
     textAlign: 'center',
-    lineHeight: 16,
   },
-  card: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+  outlineCard: {
+    padding: spacing.md,
   },
-  cardHeader: {
-    fontSize: 13.5,
+  outlineTitle: {
+    fontSize: 14,
     fontWeight: '800',
-    marginBottom: 10,
+    marginBottom: spacing.md,
   },
-  outlineItem: {
+  pageRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   pageBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
     marginRight: 10,
+    minWidth: 64,
+    alignItems: 'center',
   },
   pageBadgeText: {
+    color: '#000000',
     fontSize: 10,
     fontWeight: '800',
-    color: '#000',
   },
-  outlineTitle: {
+  pageTitle: {
     flex: 1,
-    fontSize: 11.5,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
-

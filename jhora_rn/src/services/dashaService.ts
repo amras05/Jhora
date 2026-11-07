@@ -25,6 +25,8 @@ export class DashaService {
     const firstRemainingYears = firstFullYears * nakFractionRemaining;
     const firstEndMs = currentStart.getTime() + firstRemainingYears * 365.2425 * 86400 * 1000;
     const firstEndDate = new Date(firstEndMs);
+    const elapsedYears = firstFullYears * (1.0 - nakFractionRemaining);
+    const nominalStart = new Date(birthDate.getTime() - elapsedYears * 365.2425 * 86400 * 1000);
 
     periods.push({
       planet: lordEnglish,
@@ -32,6 +34,7 @@ export class DashaService {
       endDate: firstEndDate,
       years: firstRemainingYears,
       level: 1,
+      nominalStart,
     });
     currentStart = firstEndDate;
 
@@ -57,6 +60,7 @@ export class DashaService {
 
   /**
    * Lazily computes sub-periods (Level N+1) for a given parent period.
+   * Accurately preserves uncompressed sub-period spans even during the 1st dasha balance.
    */
   static getSubPeriods(parent: DashaPeriod): DashaPeriod[] {
     if (parent.subPeriods) return parent.subPeriods;
@@ -66,26 +70,33 @@ export class DashaService {
     const parentIndex = seq.indexOf(parent.planet);
     const startIndex = parentIndex >= 0 ? parentIndex : 0;
     const nextLevel = parent.level + 1;
-    const totalParentMs = parent.endDate.getTime() - parent.startDate.getTime();
+
+    const baseMs = (parent.nominalStart ?? parent.startDate).getTime();
+    const totalParentMs = parent.endDate.getTime() - baseMs;
 
     const subs: DashaPeriod[] = [];
-    let currStartMs = parent.startDate.getTime();
+    let curr = baseMs;
 
     for (let i = 0; i < 9; i++) {
-      const subPlanet = seq[(startIndex + i) % 9];
-      const subYears = AstroConstants.dashaYears[subPlanet];
-      const frac = subYears / 120.0;
-      const subDurationMs = totalParentMs * frac;
-      const currEndMs = i === 8 ? parent.endDate.getTime() : Math.round(currStartMs + subDurationMs);
+      const p = seq[(startIndex + i) % 9];
+      const end =
+        i === 8
+          ? parent.endDate.getTime()
+          : Math.round(curr + (totalParentMs * AstroConstants.dashaYears[p]) / 120.0);
 
-      subs.push({
-        planet: subPlanet,
-        startDate: new Date(currStartMs),
-        endDate: new Date(currEndMs),
-        years: (currEndMs - currStartMs) / (365.2425 * 86400 * 1000),
-        level: nextLevel,
-      });
-      currStartMs = currEndMs;
+      if (end > parent.startDate.getTime()) {
+        const clipped = curr < parent.startDate.getTime();
+        const effectiveStart = Math.max(curr, parent.startDate.getTime());
+        subs.push({
+          planet: p,
+          level: nextLevel,
+          startDate: new Date(effectiveStart),
+          endDate: new Date(end),
+          nominalStart: clipped ? new Date(curr) : undefined,
+          years: (end - effectiveStart) / (365.2425 * 86400 * 1000),
+        });
+      }
+      curr = end;
     }
 
     parent.subPeriods = subs;

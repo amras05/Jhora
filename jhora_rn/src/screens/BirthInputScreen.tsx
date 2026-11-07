@@ -10,9 +10,11 @@ import {
   FlatList,
   SafeAreaView,
   Alert,
+  Switch,
 } from 'react-native';
 import { AppColors } from '../theme/appTheme';
 import { CityDatabase, CityEntry } from '../services/cityDatabase';
+import { SavedHoroscopeService } from '../services/savedHoroscopeService';
 import { BirthData } from '../models/astroModels';
 
 interface Props {
@@ -71,6 +73,7 @@ export const BirthInputScreen: React.FC<Props> = ({
 
   // Selected city
   const [selectedCity, setSelectedCity] = useState<CityEntry>(CityDatabase.cities[0]);
+  const [autoSave, setAutoSave] = useState(false);
   const [citySearchModal, setCitySearchModal] = useState(false);
   const [cityQuery, setCityQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CityEntry[]>(CityDatabase.cities.slice(0, 10));
@@ -183,6 +186,10 @@ export const BirthInputScreen: React.FC<Props> = ({
       gender: gender === 'Male' ? (isTe ? 'పురుషుడు' : 'Male') : (isTe ? 'స్త్రీ' : 'Female'),
     };
 
+    if (autoSave) {
+      SavedHoroscopeService.save(birthData);
+    }
+
     onCalculate(birthData);
   };
 
@@ -214,6 +221,12 @@ export const BirthInputScreen: React.FC<Props> = ({
     for (let i = 0; i < trailingCount; i++) {
       calendarCells.push({});
     }
+  }
+
+  // Chunk cells into exact 7-day weeks for perfect vertical column alignment
+  const weeks: Array<Array<{ dayNum?: number; isCurrentSelection?: boolean }>> = [];
+  for (let i = 0; i < calendarCells.length; i += 7) {
+    weeks.push(calendarCells.slice(i, i + 7));
   }
 
   return (
@@ -482,6 +495,24 @@ export const BirthInputScreen: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
 
+        {/* Save Profile Option Switch */}
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }]}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text style={[styles.inputLabel, { color: textPrimary, marginBottom: 2 }]}>
+              {isTe ? 'ప్రొఫైల్‌ను భద్రపరచండి (Save Profile)' : 'Save Horoscope Profile'}
+            </Text>
+            <Text style={{ fontSize: 11, color: textSecondary }}>
+              {isTe ? 'గణన అనంతరం సేవ్ చేసిన జాతకాలలో భద్రపరుస్తుంది' : 'Automatically save to profile list upon calculation'}
+            </Text>
+          </View>
+          <Switch
+            value={autoSave}
+            onValueChange={setAutoSave}
+            thumbColor={autoSave ? gold : '#ccc'}
+            trackColor={{ false: '#767577', true: AppColors.maroon }}
+          />
+        </View>
+
         {/* Submit Button */}
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.8}>
           <Text style={styles.submitBtnText}>
@@ -555,42 +586,45 @@ export const BirthInputScreen: React.FC<Props> = ({
               ))}
             </View>
 
-            {/* Calendar Grid: Exact 7 Equal Columns (14.2857% each) */}
+            {/* Calendar Grid: Exact 7 Equal Columns with flex: 1 */}
             <View style={styles.daysGrid}>
-              {calendarCells.map((cell, idx) => {
-                if (!cell.dayNum) {
-                  return <View key={`empty-${idx}`} style={styles.dayCellCol} />;
-                }
-                const isSelected = cell.isCurrentSelection;
-                const colIdx = idx % 7;
-                const isSunday = colIdx === 0;
-                return (
-                  <View key={`day-${cell.dayNum}`} style={styles.dayCellCol}>
-                    <TouchableOpacity
-                      style={[
-                        styles.dayCellCircle,
-                        isSelected && {
-                          backgroundColor: AppColors.maroon,
-                          borderColor: gold,
-                          borderWidth: 1.5,
-                        },
-                      ]}
-                      onPress={() => handleSelectDay(cell.dayNum!)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.dayCellText,
-                          { color: isSunday ? '#DC2626' : textPrimary },
-                          isSelected && { color: '#FFFFFF', fontWeight: '800' },
-                        ]}
-                      >
-                        {cell.dayNum}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+              {weeks.map((week, wIdx) => (
+                <View key={`week-${wIdx}`} style={styles.weekRow}>
+                  {week.map((cell, colIdx) => {
+                    if (!cell.dayNum) {
+                      return <View key={`empty-${wIdx}-${colIdx}`} style={styles.dayCellCol} />;
+                    }
+                    const isSelected = cell.isCurrentSelection;
+                    const isSunday = colIdx === 0;
+                    return (
+                      <View key={`day-${cell.dayNum}`} style={styles.dayCellCol}>
+                        <TouchableOpacity
+                          style={[
+                            styles.dayCellCircle,
+                            isSelected && {
+                              backgroundColor: AppColors.maroon,
+                              borderColor: gold,
+                              borderWidth: 1.5,
+                            },
+                          ]}
+                          onPress={() => handleSelectDay(cell.dayNum!)}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.dayCellText,
+                              { color: isSunday ? '#DC2626' : textPrimary },
+                              isSelected && { color: '#FFFFFF', fontWeight: '800' },
+                            ]}
+                          >
+                            {cell.dayNum}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
 
             {/* Confirm / Done Button */}
@@ -892,7 +926,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   dayOfWeekCol: {
-    width: '14.2857%',
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -902,17 +936,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     width: '100%',
-    justifyContent: 'flex-start',
+  },
+  weekRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginVertical: 1,
   },
   dayCellCol: {
-    width: '14.2857%',
+    flex: 1,
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 1,
   },
   dayCellCircle: {
     width: 32,

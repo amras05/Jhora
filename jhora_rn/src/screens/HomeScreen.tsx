@@ -5,90 +5,117 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Image,
 } from 'react-native';
-import { AppColors } from '../theme/appTheme';
+import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../i18n';
+import { Screen, Card } from '../components/ui';
+import { radius, spacing } from '../theme/tokens';
 
 interface Props {
-  isDark: boolean;
-  onToggleTheme: () => void;
-  lang: 'te' | 'en';
-  onToggleLang: () => void;
   onNavigate: (screen: 'home' | 'birth_input' | 'panchanga' | 'prasna' | 'saved') => void;
+  // Optional for backward compatibility with App.tsx during migration
+  isDark?: boolean;
+  onToggleTheme?: () => void;
+  lang?: 'te' | 'en';
+  onToggleLang?: () => void;
 }
 
-export const HomeScreen: React.FC<Props> = ({
-  isDark,
-  onToggleTheme,
-  lang,
-  onToggleLang,
-  onNavigate,
-}) => {
-  const gold = AppColors.getGold(isDark);
-  const bg = AppColors.getBg(isDark);
-  const cardBg = AppColors.getCard(isDark);
-  const borderColor = AppColors.getBorder(isDark);
-  const textPrimary = AppColors.getTextPrimary(isDark);
-  const textSecondary = AppColors.getTextSecondary(isDark);
-  const textMuted = AppColors.getTextMuted(isDark);
-
-  const isTe = lang === 'te';
+export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
+  const { colors, isDark, toggleTheme } = useTheme();
+  const { t, lang, toggleLang } = useI18n();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top Brand Bar */}
+    <Screen style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Top Header Bar */}
         <View style={styles.topBar}>
-          <View style={[styles.brandBadge, { borderColor: `${gold}40`, backgroundColor: `${gold}15` }]}>
-            <Text style={[styles.starIcon, { color: gold }]}>★</Text>
-            <Text style={[styles.brandText, { color: gold }]}>JAGANNATHA HORA MOBILE</Text>
+          <View
+            style={[
+              styles.brandBadge,
+              {
+                borderColor: `${colors.gold}50`,
+                backgroundColor: `${colors.gold}15`,
+              },
+            ]}
+          >
+            <Text style={[styles.starIcon, { color: colors.gold }]}>★</Text>
+            <Text style={[styles.brandText, { color: colors.gold }]}>
+              {t('home.brandBadge')}
+            </Text>
           </View>
 
           <View style={styles.actionsRow}>
             {/* Theme Toggle Button */}
             <TouchableOpacity
-              style={[styles.actionBtn, { borderColor, backgroundColor: cardBg }]}
-              onPress={onToggleTheme}
+              style={[
+                styles.actionBtn,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
+              onPress={toggleTheme}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle theme"
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
+              <Text style={styles.actionIcon}>{isDark ? '☀️' : '🌙'}</Text>
             </TouchableOpacity>
 
             {/* Language Toggle Button */}
             <TouchableOpacity
-              style={[styles.actionBtn, { borderColor, backgroundColor: cardBg, paddingHorizontal: 10 }]}
-              onPress={onToggleLang}
+              style={[
+                styles.actionBtn,
+                { borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 12 },
+              ]}
+              onPress={toggleLang}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle language"
               activeOpacity={0.7}
             >
-              <Text style={[styles.langText, { color: textPrimary }]}>{isTe ? 'తెలుగు' : 'EN'}</Text>
+              <Text style={[styles.langText, { color: colors.text }]}>
+                {lang === 'te' ? 'తెలుగు' : 'EN'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Hero Vedic Sun & Branding */}
+        {/* Hero Section: Bala Amma Image & Sacred Title */}
         <View style={styles.heroSection}>
-          <View style={[styles.sunCircle, { borderColor: gold, borderWidth: 2, overflow: 'hidden' }]}>
+          <View
+            style={[
+              styles.avatarContainer,
+              {
+                borderColor: colors.gold,
+                backgroundColor: colors.surface,
+                shadowColor: colors.gold,
+              },
+            ]}
+          >
             <Image
               source={require('../../assets/icon.png')}
-              style={{ width: '100%', height: '100%' }}
+              style={styles.avatarImage}
               resizeMode="cover"
             />
           </View>
 
-          <Text style={[styles.heroTitle, { color: textPrimary, fontSize: 18, textAlign: 'center' }]}>
-            {isTe ? 'సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం' : 'Sai Bala Tripura Sundari Jyothishalayam'}
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
+            {t('home.heroTitle')}
           </Text>
 
-          <Text style={[styles.heroSubtitle, { color: `${gold}D0`, textAlign: 'center' }]}>
-            {isTe ? 'శ్రీ జగన్నాథ వేద జ్యోతిష సమగ్ర గణన చక్రం' : 'Sri Jagannatha Vedic Astrology Engine'}
+          <Text style={[styles.heroSubtitle, { color: colors.gold }]}>
+            {t('home.heroSubtitle')}
           </Text>
 
-          <View style={[styles.sacredShlokaPill, { borderColor: `${gold}40`, backgroundColor: cardBg }]}>
-            <Text style={[styles.sacredShlokaText, { color: AppColors.maroonLight }]}>
-              {isTe
-                ? '|| శ్రీరస్తు శుభమస్తు విజయోస్తు • సాయి బాలా త్రిపుర సుందరి ||'
-                : '|| Sri Bala Tripura Sundari Devyai Namaha ||'}
+          <View
+            style={[
+              styles.shlokaPill,
+              {
+                borderColor: `${colors.gold}40`,
+                backgroundColor: colors.stripBg,
+              },
+            ]}
+          >
+            <Text style={[styles.shlokaText, { color: colors.primary }]}>
+              {t('home.sacredShloka')}
             </Text>
           </View>
         </View>
@@ -96,108 +123,124 @@ export const HomeScreen: React.FC<Props> = ({
         {/* 4 Primary Navigation Cards */}
         <View style={styles.cardsContainer}>
           {/* 1. Birth Chart */}
-          <TouchableOpacity
-            style={[styles.featureCard, { backgroundColor: cardBg, borderColor }]}
+          <Card
             onPress={() => onNavigate('birth_input')}
-            activeOpacity={0.8}
+            style={styles.navCard}
           >
-            <View style={[styles.cardIconBox, { backgroundColor: `${gold}20` }]}>
-              <Text style={{ fontSize: 24 }}>✨</Text>
+            <View style={styles.cardRow}>
+              <View
+                style={[
+                  styles.cardIconBox,
+                  { backgroundColor: `${colors.gold}20` },
+                ]}
+              >
+                <Text style={styles.cardEmoji}>✨</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {t('home.birthChartTitle')}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                  {t('home.birthChartSubtitle')}
+                </Text>
+              </View>
+              <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>
             </View>
-            <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>
-                {isTe ? 'జన్మ జాతక చక్రము (Birth Chart)' : 'Birth Chart (Janma Kundali)'}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>
-                {isTe
-                  ? 'రాశి, 16 షోడశవర్గములు, 5-స్థాయి వింశోత్తరి దశలు, షడ్బలం & 25 పుటల రిపోర్ట్'
-                  : 'Rashi D1, 16 Divisional Charts, 5-Level Vimshottari Dashas & 25-Page PDF Report'}
-              </Text>
-            </View>
-            <Text style={[styles.cardChevron, { color: gold }]}>›</Text>
-          </TouchableOpacity>
+          </Card>
 
           {/* 2. Daily Panchangam */}
-          <TouchableOpacity
-            style={[styles.featureCard, { backgroundColor: cardBg, borderColor }]}
+          <Card
             onPress={() => onNavigate('panchanga')}
-            activeOpacity={0.8}
+            style={styles.navCard}
           >
-            <View style={[styles.cardIconBox, { backgroundColor: '#10B98120' }]}>
-              <Text style={{ fontSize: 24 }}>📅</Text>
+            <View style={styles.cardRow}>
+              <View
+                style={[
+                  styles.cardIconBox,
+                  { backgroundColor: `${colors.accent.green}20` },
+                ]}
+              >
+                <Text style={styles.cardEmoji}>📅</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {t('home.panchangaTitle')}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                  {t('home.panchangaSubtitle')}
+                </Text>
+              </View>
+              <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>
             </View>
-            <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>
-                {isTe ? 'పంచాంగ దర్శిని (Panchanga)' : 'Daily Panchangam'}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>
-                {isTe
-                  ? 'తిథి, నక్షత్రం, యోగం, కరణం, రాహుకాలం, యమగండం & అభిజిత్ ముహూర్తం'
-                  : 'Tithi, Nakshatra, Yoga, Karana, Rahu Kalam, Yamagandam & Abhijit Muhurtha'}
-              </Text>
-            </View>
-            <Text style={[styles.cardChevron, { color: gold }]}>›</Text>
-          </TouchableOpacity>
+          </Card>
 
           {/* 3. Prasna Chart */}
-          <TouchableOpacity
-            style={[styles.featureCard, { backgroundColor: cardBg, borderColor }]}
+          <Card
             onPress={() => onNavigate('prasna')}
-            activeOpacity={0.8}
+            style={styles.navCard}
           >
-            <View style={[styles.cardIconBox, { backgroundColor: '#8B5CF620' }]}>
-              <Text style={{ fontSize: 24 }}>🔮</Text>
+            <View style={styles.cardRow}>
+              <View
+                style={[
+                  styles.cardIconBox,
+                  { backgroundColor: `${colors.accent.blue}20` },
+                ]}
+              >
+                <Text style={styles.cardEmoji}>🔮</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {t('home.prasnaTitle')}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                  {t('home.prasnaSubtitle')}
+                </Text>
+              </View>
+              <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>
             </View>
-            <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>
-                {isTe ? 'ప్రశ్న శాస్త్రం (Prasna / Horary)' : 'Prasna / Horary Chart'}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>
-                {isTe
-                  ? 'ప్రస్తుత క్షణానికి 1–249 KP సంఖ్యతో తక్షణ ప్రశ్నా చక్రం'
-                  : 'Instant horary chart for current moment with 1–249 KP Seed'}
-              </Text>
-            </View>
-            <Text style={[styles.cardChevron, { color: gold }]}>›</Text>
-          </TouchableOpacity>
+          </Card>
 
           {/* 4. Saved Horoscopes */}
-          <TouchableOpacity
-            style={[styles.featureCard, { backgroundColor: cardBg, borderColor }]}
+          <Card
             onPress={() => onNavigate('saved')}
-            activeOpacity={0.8}
+            style={styles.navCard}
           >
-            <View style={[styles.cardIconBox, { backgroundColor: '#F59E0B20' }]}>
-              <Text style={{ fontSize: 24 }}>📑</Text>
+            <View style={styles.cardRow}>
+              <View
+                style={[
+                  styles.cardIconBox,
+                  { backgroundColor: `${colors.accent.orange}20` },
+                ]}
+              >
+                <Text style={styles.cardEmoji}>📑</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {t('home.savedTitle')}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                  {t('home.savedSubtitle')}
+                </Text>
+              </View>
+              <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>
             </View>
-            <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>
-                {isTe ? 'భద్రపరచిన జాతకాలు (Saved Horoscopes)' : 'Saved Horoscopes'}
-              </Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>
-                {isTe
-                  ? 'గతంలో భద్రపరచిన కుటుంబ మరియు మిత్రుల జాతక ప్రొఫైల్స్'
-                  : 'Saved horoscope profiles, history, and quick access'}
-              </Text>
-            </View>
-            <Text style={[styles.cardChevron, { color: gold }]}>›</Text>
-          </TouchableOpacity>
+          </Card>
         </View>
 
         {/* Astrologer Credential Card */}
-        <View style={[styles.astrologerCard, { backgroundColor: cardBg, borderColor }]}>
-          <Text style={[styles.astroTitle, { color: AppColors.maroon }]}>
-            సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం
+        <Card variant="outlined" style={styles.astrologerCard}>
+          <Text style={[styles.astroTitle, { color: colors.primary }]}>
+            {t('home.astrologerTitle')}
           </Text>
-          <Text style={[styles.astroScholar, { color: AppColors.maroonLight }]}>
-            జ్యోతిష విద్యాభూషణ-M.B.S.Sastry-9030166610
+          <Text style={[styles.astroScholar, { color: colors.primaryDark }]}>
+            {t('home.astrologerScholar')}
           </Text>
-          <Text style={[styles.astroAddress, { color: textMuted }]}>
-            భవానీపురం, విజయవాడ - 12 (BHAVANIPURAM VIJAYAWADA 12)
+          <Text style={[styles.astroAddress, { color: colors.textMuted }]}>
+            {t('home.astrologerAddress')}
           </Text>
-        </View>
+        </Card>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 };
 
@@ -206,21 +249,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   brandBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 1,
+    borderRadius: radius.full,
     borderWidth: 1,
   },
   starIcon: {
@@ -228,130 +272,133 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   brandText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   actionBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 16,
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.full,
     borderWidth: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionIcon: {
+    fontSize: 16,
   },
   langText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginVertical: spacing.sm,
   },
-  sunCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+  avatarContainer: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 2.5,
+    overflow: 'hidden',
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  sunSymbol: {
-    fontSize: 32,
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '800',
-    letterSpacing: 1,
     textAlign: 'center',
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
   },
   heroSubtitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginTop: 4,
+    fontSize: 13,
+    fontWeight: '600',
     textAlign: 'center',
+    marginBottom: spacing.md,
   },
-  sacredShlokaPill: {
-    marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+  shlokaPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.full,
     borderWidth: 1,
+    marginTop: spacing.xs,
   },
-  sacredShlokaText: {
+  shlokaText: {
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
   },
   cardsContainer: {
-    gap: 12,
-    marginBottom: 24,
+    marginTop: spacing.sm,
   },
-  featureCard: {
+  navCard: {
+    marginVertical: spacing.xs + 1,
+    padding: spacing.md,
+  },
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   cardIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
     justifyContent: 'center',
-    marginRight: 14,
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  cardEmoji: {
+    fontSize: 22,
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   cardSubtitle: {
-    fontSize: 11,
-    marginTop: 3,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 16,
   },
   cardChevron: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginLeft: 6,
+    fontSize: 24,
+    fontWeight: '300',
+    marginLeft: spacing.sm,
   },
   astrologerCard: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+    marginTop: spacing.lg,
+    padding: spacing.md,
     alignItems: 'center',
-    marginTop: 8,
   },
   astroTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
     textAlign: 'center',
+    marginBottom: 3,
   },
   astroScholar: {
     fontSize: 12,
     fontWeight: '700',
-    marginTop: 4,
     textAlign: 'center',
+    marginBottom: 3,
   },
   astroAddress: {
-    fontSize: 10.5,
-    marginTop: 2,
+    fontSize: 11,
     textAlign: 'center',
   },
 });
-

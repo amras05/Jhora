@@ -1,0 +1,77 @@
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import {
+  BirthData,
+  ChartData,
+  AshtakavargaData,
+  PlanetShadbala,
+  SpecialPointsResult,
+  PanchangaData,
+  DoshaAnalysis,
+  DashaPeriod,
+} from '../models/astroModels';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+export type PdfReportData = {
+  chartData: ChartData;
+  ashtakavarga: AshtakavargaData;
+  shadbala: PlanetShadbala[];
+  special: SpecialPointsResult;
+  panchanga: PanchangaData;
+  dosha: DoshaAnalysis;
+  dashas: DashaPeriod[];
+};
+
+type ProfileContextValue = {
+  birthData: BirthData;
+  setBirthData: (data: BirthData) => void;
+  pdfData: PdfReportData | null;
+  setPdfData: (data: PdfReportData | null) => void;
+};
+
+// ─── Default birth data ──────────────────────────────────────────────────────
+const DEFAULT_BIRTH_DATA: BirthData = {
+  name: 'శ్రీ వెంకటేశ్వర రావు',
+  dateTime: new Date(1990, 7, 15, 10, 30, 0),
+  latitude: 16.5062,
+  longitude: 80.6480,
+  timezone: 5.5,
+  placeName: 'విజయవాడ, NTR, Andhra Pradesh',
+  gender: 'పురుషుడు',
+};
+
+// ─── Context ─────────────────────────────────────────────────────────────────
+const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
+
+// ─── Provider ────────────────────────────────────────────────────────────────
+interface ProfileProviderProps {
+  children: React.ReactNode;
+}
+
+export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) => {
+  const [birthData, setBirthDataState] = useState<BirthData>(DEFAULT_BIRTH_DATA);
+  const [pdfData, setPdfDataState] = useState<PdfReportData | null>(null);
+
+  const setBirthData = useCallback((data: BirthData) => {
+    setBirthDataState(data);
+  }, []);
+
+  const setPdfData = useCallback((data: PdfReportData | null) => {
+    setPdfDataState(data);
+  }, []);
+
+  return (
+    <ProfileContext.Provider value={{ birthData, setBirthData, pdfData, setPdfData }}>
+      {children}
+    </ProfileContext.Provider>
+  );
+};
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+export const useProfile = (): ProfileContextValue => {
+  const ctx = useContext(ProfileContext);
+  if (!ctx) {
+    throw new Error('useProfile must be used within a ProfileProvider');
+  }
+  return ctx;
+};
+

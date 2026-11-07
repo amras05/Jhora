@@ -129,16 +129,33 @@ export class YogaService {
       });
     }
 
-    // 5. DHANA YOGA (2nd & 11th House Lord combinations)
-    yogas.push({
-      name: 'Maha Dhana Yoga',
-      teluguName: 'మహా ధన యోగం',
-      category: 'dhana',
-      description: 'Benefic lords placed in 2nd/11th houses conferring financial stability.',
-      teluguDescription: 'ధన, లాభ స్థానాలలో శుభ గ్రహములు నిలిచి జీవితాంతం ఆర్థిక స్థిరత్వాన్ని మరియు వ్యాపార వృద్ధిని చేకూర్చును.',
-      planets: ['Jupiter', 'Venus'],
-      houses: [2, 11],
-    });
+    // 5. DHANA YOGA (Benefic planets in 2nd or 11th House)
+    const dhanaPlanets: string[] = [];
+    const dhanaHouses: number[] = [];
+    if (jupiter && [2, 11].includes(houseOf(jupiter))) {
+      dhanaPlanets.push('Jupiter');
+      dhanaHouses.push(houseOf(jupiter));
+    }
+    if (venus && [2, 11].includes(houseOf(venus))) {
+      dhanaPlanets.push('Venus');
+      dhanaHouses.push(houseOf(venus));
+    }
+    if (mercury && [2, 11].includes(houseOf(mercury)) && mercury.dignity !== 'Debilitated') {
+      dhanaPlanets.push('Mercury');
+      dhanaHouses.push(houseOf(mercury));
+    }
+
+    if (dhanaPlanets.length > 0) {
+      yogas.push({
+        name: 'Maha Dhana Yoga',
+        teluguName: 'మహా ధన యోగం',
+        category: 'dhana',
+        description: 'Benefic planets placed in 2nd or 11th houses conferring financial stability.',
+        teluguDescription: 'ధన (2), లాభ (11) స్థానాలలో శుభ గ్రహములు నిలిచి జీవితాంతం ఆర్థిక స్థిరత్వాన్ని మరియు వృద్ధిని చేకూర్చును.',
+        planets: dhanaPlanets,
+        houses: dhanaHouses,
+      });
+    }
 
     return yogas;
   }

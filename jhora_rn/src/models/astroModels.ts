@@ -87,6 +87,7 @@ export interface DashaPeriod {
   years?: number;
   level: number;
   subPeriods?: DashaPeriod[];
+  nominalStart?: Date;
 }
 
 export interface SpecialPointsResult {
