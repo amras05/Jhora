@@ -3,7 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { ChartData, PanchangaData } from '../../models/astroModels';
 import { AstroConstants } from '../../constants/astroConstants';
 import { TeluguPdfReportGenerator } from '../../services/teluguPdfReportGenerator';
-import { ChartPanchangaView } from '../ChartPanchangaView';
+import { ClassicalDetailsSection } from './ClassicalDetailsSection';
 import { useTheme } from '../../context/ThemeContext';
 import { useI18n } from '../../i18n';
 import { Card, SectionHeader, Chip } from '../ui';
@@ -208,16 +208,14 @@ export const PlanetsSection: React.FC<PlanetsSectionProps> = ({ chartData, panch
         })}
       </Card>
 
-      {/* 3. Birth Panchangam Limbs */}
+      {/* 3. Birth Panchangam & Classical Details */}
       <SectionHeader
         title={t('chartPanchanga.sectionPanchanga')}
         icon="📖"
       />
-      <ChartPanchangaView
-        panchanga={panchanga}
+      <ClassicalDetailsSection
         chartData={chartData}
-        isDark={isDark}
-        lang={isTe ? 'te' : 'en'}
+        panchanga={panchanga}
       />
     </View>
   );

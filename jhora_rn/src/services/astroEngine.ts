@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { AstroConstants } from '../constants/astroConstants';
 import {
   AshtakavargaData,
@@ -55,29 +56,31 @@ export class AstroEngine {
     specialPoints: SpecialPointsResult;
     dosha: DoshaAnalysis;
   }> {
-    // 1. Try local Swiss Ephemeris Python Server if available
-    try {
-      const resp = await fetch('http://127.0.0.1:8399/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          year: birth.dateTime.getFullYear(),
-          month: birth.dateTime.getMonth() + 1,
-          day: birth.dateTime.getDate(),
-          hour: birth.dateTime.getHours(),
-          minute: birth.dateTime.getMinutes(),
-          second: birth.dateTime.getSeconds(),
-          lat: birth.latitude,
-          lon: birth.longitude,
-          tz: birth.timezone
-        }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        return this._transformPythonResponse(data, birth);
+    // 1. Try local Swiss Ephemeris Python Server ONLY in Web/Desktop dev environment
+    if (Platform.OS === 'web') {
+      try {
+        const resp = await fetch('http://127.0.0.1:8399/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            year: birth.dateTime.getFullYear(),
+            month: birth.dateTime.getMonth() + 1,
+            day: birth.dateTime.getDate(),
+            hour: birth.dateTime.getHours(),
+            minute: birth.dateTime.getMinutes(),
+            second: birth.dateTime.getSeconds(),
+            lat: birth.latitude,
+            lon: birth.longitude,
+            tz: birth.timezone
+          }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          return this._transformPythonResponse(data, birth);
+        }
+      } catch (_) {
+        // Offline fallback: Pure Meeus astronomical algorithms matching Flutter
       }
-    } catch (_) {
-      // Offline fallback: Pure Meeus astronomical algorithms matching Flutter
     }
 
     return this._calculateLocally(birth);

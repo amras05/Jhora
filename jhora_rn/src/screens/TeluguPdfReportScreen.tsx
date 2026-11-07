@@ -5,12 +5,14 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  Switch,
+  Modal,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../i18n';
-import { Screen, AppBar, Card, PrimaryButton } from '../components/ui';
+import { Screen, AppBar, Card, PrimaryButton, SegmentedControl, Chip } from '../components/ui';
 import { radius, spacing } from '../theme/tokens';
 import {
   ChartData,
@@ -21,8 +23,17 @@ import {
   PanchangaData,
   DoshaAnalysis,
 } from '../models/astroModels';
-import { PdfExportService } from '../services/pdfExportService';
-import { TeluguPdfReportGenerator } from '../services/teluguPdfReportGenerator';
+import { AstroConstants } from '../constants/astroConstants';
+import {
+  PdfExportService,
+  PdfStage,
+  SavedReport,
+} from '../services/pdfExportService';
+import {
+  TeluguPdfReportGenerator,
+  PdfPreset,
+  PdfSectionOptions,
+} from '../services/teluguPdfReportGenerator';
 
 interface Props {
   chartData: ChartData;
@@ -33,6 +44,7 @@ interface Props {
   dosha: DoshaAnalysis;
   dashas: DashaPeriod[];
   onBack: () => void;
+  onNavigateReports?: () => void;
   // Optional for backward compatibility with App.tsx
   isDark?: boolean;
   lang?: 'te' | 'en';
@@ -47,126 +59,357 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
   dosha,
   dashas,
   onBack,
+  onNavigateReports,
 }) => {
   const { colors } = useTheme();
-  const { t, isTe } = useI18n();
+  const { lang } = useI18n();
+  const isTe = lang === 'te';
 
-  const [exporting, setExporting] = useState(false);
+  const [preset, setPreset] = useState<PdfPreset>('standard');
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [sections, setSections] = useState<Required<PdfSectionOptions>>(() =>
+    TeluguPdfReportGenerator.resolveSectionOptions({ preset: 'standard' })
+  );
 
-  const handleDownload = async () => {
-    setExporting(true);
+  const [stage, setStage] = useState<PdfStage>('idle');
+  const [stageMessage, setStageMessage] = useState<string>('');
+  const [lastSavedReport, setLastSavedReport] = useState<SavedReport | null>(null);
+
+  const handlePresetChange = (newPreset: string) => {
+    const p = newPreset as PdfPreset;
+    setPreset(p);
+    setSections(TeluguPdfReportGenerator.resolveSectionOptions({ preset: p }));
+  };
+
+  const toggleSection = (key: keyof PdfSectionOptions) => {
+    setSections(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      return updated;
+    });
+  };
+
+  const calculatedTotalPages = TeluguPdfReportGenerator.countTotalPages({
+    preset,
+    sections,
+  });
+
+  const birth = chartData?.birthData;
+  const bDate = TeluguPdfReportGenerator.toDate(birth?.dateTime);
+  const moon = chartData?.planets?.find(p => p.name === 'Moon') || chartData?.planets?.[1];
+  const lagnaRashi = chartData?.ascendant ? AstroConstants.rashisTelugu[chartData.ascendant.rashiIndex] : '';
+  const moonRashi = moon ? AstroConstants.rashisTelugu[moon.rashiIndex] : '';
+  const moonNak = moon ? AstroConstants.nakshatrasTelugu[moon.nakshatraIndex] : '';
+
+  const handleExport = async (mode: 'save' | 'share') => {
+    setStage('preparing');
     try {
-      const res = await PdfExportService.exportTeluguPdfReport({
-        chartData,
-        ashtakavarga,
-        shadbala,
-        special,
-        panchanga,
-        dosha,
-        dashas,
-      });
+      const res = await PdfExportService.createReport(
+        {
+          chartData,
+          ashtakavarga,
+          shadbala,
+          special,
+          panchanga,
+          dosha,
+          dashas,
+        },
+        { preset, sections },
+        (s, msg) => {
+          setStage(s);
+          if (msg) setStageMessage(msg);
+        }
+      );
 
-      if (!res.success) {
-        Alert.alert(t('pdfReport.alertErrorTitle'), res.message);
+      setLastSavedReport(res.report);
+
+      if (mode === 'save') {
+        setStage('saving');
+        setStageMessage(isTe ? 'ఫోల్డర్‌లో భద్రపరుస్తోంది...' : 'Saving to selected folder...');
+        const saveRes = await PdfExportService.saveToPhone(res.uri, res.fileName);
+        setStage('complete');
+        if (!saveRes.ok) {
+          Alert.alert(isTe ? 'సూచన' : 'Notice', saveRes.message);
+        }
       } else {
-        Alert.alert(t('pdfReport.alertSuccessTitle'), res.message);
+        setStage('complete');
+        try {
+          await PdfExportService.openReport(res.uri);
+        } catch (shareErr: any) {
+          Alert.alert(isTe ? 'లోపం' : 'Error', shareErr?.message || 'Failed to share PDF');
+        }
       }
-    } catch (e: any) {
-      Alert.alert(t('pdfReport.alertErrorTitle'), e?.message || 'PDF Generation Error');
-    } finally {
-      setExporting(false);
+    } catch (err: any) {
+      setStage('error');
+      Alert.alert(isTe ? 'లోపం' : 'Error', err?.message || 'PDF Generation Error');
     }
   };
 
-  const pagesSummary = [
-    { page: 'పుట 1', title: 'జాతక ప్రాథమిక వివరాలు, పంచాంగం & నిరాయణ గ్రహ స్థానాలు (Dignities)' },
-    { page: 'పుట 2', title: 'షోడశవర్గ చక్రములు - భాగము 1: రాశి (D1), నవాంశ (D9), హోరా (D2), ద్రేక్కాణ (D3)' },
-    { page: 'పుట 3', title: 'షోడశవర్గ చక్రములు - భాగము 2: చతుర్థాంశ (D4), సప్తాంశ (D7), దశాంశ (D10), ద్వాదశాంశ (D12)' },
-    { page: 'పుట 4', title: 'షోడశవర్గ చక్రములు - భాగము 3: షోడశాంశ (D16), వింశాంశ (D20), చతుర్వింశాంశ (D24), సప్తవింశాంశ (D27)' },
-    { page: 'పుట 5', title: 'షోడశవర్గ చక్రములు - భాగము 4: త్రింశాంశ (D30), ఖవేదాంశ (D40), అక్షవేదాంశ (D45), షష్ట్యంశ (D60)' },
-    { page: 'పుట 6', title: 'ద్వాదశ భావ స్ఫుట పట్టిక (12 Houses) & సర్వాష్టకవర్గము (SAV 337)' },
-    { page: 'పుట 7', title: 'షడ్బల బలాబలాలు, భృగు బిందువు (Destiny Point), యోగీ-అవయోగీ & జైమిని చరకారకములు' },
-    { page: 'పుట 8', title: 'వింశోత్తరి మహాదశల క్రమము & అంతర్దశలు (జన్మ నుండి 40 సం. వరకు)' },
-    { page: 'పుట 9', title: 'అంతర్దశల సమగ్ర పట్టిక (40 నుండి 80+ సంవత్సరాలు)' },
-    { page: 'పుట 10-12', title: 'ప్రత్యంతర దశల సమగ్ర కాలచక్రం (Level 3: Pratyantar Dashas up to 80 Years)' },
-    { page: 'పుట 13-14', title: 'సూక్ష్మ దశల సమగ్ర విశ్లేషణ (Level 4: Sookshma Dashas up to 80 Years)' },
-    { page: 'పుట 15-24', title: 'సమగ్ర ప్రాణ దశల మహాపట్టిక (Level 5: Prana Dashas for ALL 80 YEARS down to Seconds)' },
-    { page: 'పుట 25', title: 'ఆశీర్వచన పత్రము & కార్యాలయ సంప్రదింపు చిరునామా (సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం)' },
+  const handleOpenPreview = async (uri: string) => {
+    try {
+      await PdfExportService.openReport(uri);
+    } catch (e: any) {
+      Alert.alert(isTe ? 'లోపం' : 'Error', e?.message || 'Failed to open PDF report');
+    }
+  };
+
+  const presetOptions = [
+    { key: 'summary', label: isTe ? 'సంక్షిప్త (~9 పు.)' : 'Summary (9p)' },
+    { key: 'standard', label: isTe ? 'ప్రామాణిక (~15 పు.)' : 'Standard (15p)' },
+    { key: 'full', label: isTe ? 'సంపూర్ణ (26 పు.)' : 'Full (26p)' },
+  ];
+
+  const sectionItems: Array<{
+    key: keyof PdfSectionOptions;
+    title: string;
+    pages: number;
+  }> = [
+    { key: 'basicAndPanchanga', title: isTe ? '1. జాతక ప్రాథమిక వివరాలు & పంచాంగం' : '1. Basic Info & Panchangam', pages: 1 },
+    { key: 'classicalChakras', title: isTe ? '2. అవకహడ, ఘాత చక్రాలు & అదృష్ట విషయాలు' : '2. Avakahada, Ghata & Lucky Factors', pages: 1 },
+    { key: 'shodashavargaPart1', title: isTe ? '3. రాశి, నవాంశ, హోరా, ద్రేక్కాణ (D1-D3)' : '3. D1, D9, D2, D3 Charts', pages: 1 },
+    { key: 'shodashavargaPart2', title: isTe ? '4. చతుర్థాంశ, సప్తాంశ, దశాంశ, ద్వాదశాంశ (D4-D12)' : '4. D4, D7, D10, D12 Charts', pages: 1 },
+    { key: 'shodashavargaPart3', title: isTe ? '5. షోడశాంశ, వింశాంశ, చతుర్వింశాంశ, సప్తవింశాంశ' : '5. D16, D20, D24, D27 Charts', pages: 1 },
+    { key: 'shodashavargaPart4', title: isTe ? '6. త్రింశాంశ, ఖవేదాంశ, అక్షవేదాంశ, షష్ట్యంశ' : '6. D30, D40, D45, D60 Charts', pages: 1 },
+    { key: 'bhavaAndSav', title: isTe ? '7. ద్వాదశ భావాలు & సర్వాష్టకవర్గము (SAV 337)' : '7. 12 Houses & SAV 337', pages: 1 },
+    { key: 'shadbalaAndSpecial', title: isTe ? '8. షడ్బల, భృగు బిందువు, యోగీ-అవయోగీ, చరకారకాలు' : '8. Shadbala, Destiny Pt & Karakas', pages: 1 },
+    { key: 'dashaOverview', title: isTe ? '9. వింశోత్తరి మహాదశలు & అంతరదశలు (0-40 సం.)' : '9. Mahadashas & Antar (0-40y)', pages: 1 },
+    { key: 'dashaAntar40to80', title: isTe ? '10. అంతర్దశల సమగ్ర పట్టిక (40-80+ సం.)' : '10. Antardashas (40-80+y)', pages: 1 },
+    { key: 'pratyantarDashas', title: isTe ? '11. ప్రత్యంతర దశలు (Level 3 - 3 పుటలు)' : '11. Pratyantar Dashas (L3 - 3p)', pages: 3 },
+    { key: 'sookshmaDashas', title: isTe ? '12. సూక్ష్మ దశల విశ్లేషణ (Level 4 - 2 పుటలు)' : '12. Sookshma Dashas (L4 - 2p)', pages: 2 },
+    { key: 'pranaDashas', title: isTe ? '13. సమగ్ర ప్రాణ దశలు (Level 5 - 10 పుటలు)' : '13. Prana Dashas (L5 - 10p)', pages: 10 },
+    { key: 'blessingPage', title: isTe ? '14. పరిహారములు (Pariharalu)' : '14. Pariharalu (Remedies)', pages: 1 },
   ];
 
   return (
     <Screen style={styles.container}>
       <AppBar
-        title={t('pdfReport.appBarTitle')}
+        title={isTe ? 'జాతక చక్రం PDF నివేదిక' : 'Horoscope PDF Report'}
+        subtitle={isTe ? '100% ఆఫ్‌లైన్ ప్రింటింగ్ & సేవింగ్' : '100% Offline Printing & Saving'}
         onBack={onBack}
       />
 
-      {/* Direct Save Action Bar */}
-      <View style={[styles.actionBanner, { backgroundColor: colors.primaryDark }]}>
-        <PrimaryButton
-          title={exporting ? t('pdfReport.downloadBtnExporting') : t('pdfReport.downloadBtnReady')}
-          onPress={handleDownload}
-          loading={exporting}
-          variant="gold"
-          style={styles.downloadBtn}
-        />
-      </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Sacred Header Preview Box */}
-        <Card
-          variant="outlined"
-          style={[styles.headerCard, { backgroundColor: colors.stripBg, borderColor: colors.border }]}
-        >
-          <Text style={[styles.blessingText, { color: colors.primary }]}>
-            {TeluguPdfReportGenerator.blessingHeader}
-          </Text>
-          <Text style={[styles.guruText, { color: colors.primaryDark }]}>
-            {TeluguPdfReportGenerator.guruBlessing}
-          </Text>
-          <Text style={[styles.templeTitle, { color: colors.primary }]}>
-            {TeluguPdfReportGenerator.appTitle}
-          </Text>
-          <Text style={[styles.expertiseText, { color: colors.textSecondary }]}>
-            {TeluguPdfReportGenerator.expertiseLine}
-          </Text>
-
-          <View style={[styles.scholarBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.scholarBadgeText}>
-              {TeluguPdfReportGenerator.astrologerTitleAndMobile}
-            </Text>
-          </View>
-
-          <Text style={[styles.shlokaText, { color: colors.primary }]}>
-            {TeluguPdfReportGenerator.invocationShloka}
-          </Text>
-        </Card>
-
-        {/* 25-Page Outline */}
-        <Card style={styles.outlineCard}>
-          <Text style={[styles.outlineTitle, { color: colors.primary }]}>
-            {t('pdfReport.tocHeader')}
-          </Text>
-
-          {pagesSummary.map((item, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.pageRow,
-                { borderBottomColor: colors.border },
-                idx === pagesSummary.length - 1 && { borderBottomWidth: 0 },
-              ]}
-            >
-              <View style={[styles.pageBadge, { backgroundColor: colors.gold }]}>
-                <Text style={styles.pageBadgeText}>{item.page}</Text>
-              </View>
-              <Text style={[styles.pageTitle, { color: colors.textSecondary }]}>
-                {item.title}
+        {/* Profile Card & Astrological Snapshot */}
+        <Card style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View>
+              <Text style={[styles.profileName, { color: colors.text }]}>
+                {birth.name || (isTe ? 'శ్రీ / కుమారి' : 'Horoscope')}
+              </Text>
+              <Text style={[styles.profileBirth, { color: colors.textSecondary }]}>
+                {TeluguPdfReportGenerator.formatDate(bDate)} • {TeluguPdfReportGenerator.formatTime(bDate)} • {birth?.placeName || ''}
               </Text>
             </View>
-          ))}
+            {onNavigateReports && (
+              <TouchableOpacity
+                style={[styles.myReportsBtn, { backgroundColor: `${colors.gold}20`, borderColor: colors.gold }]}
+                onPress={onNavigateReports}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.myReportsBtnText, { color: colors.primaryDark }]}>
+                  📁 {isTe ? 'నా నివేదికలు' : 'My Reports'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.chipsRow}>
+            <Chip
+              label={`${isTe ? 'లగ్నం' : 'Lagna'}: ${lagnaRashi}`}
+              variant="gold"
+            />
+            <Chip
+              label={`${isTe ? 'రాశి' : 'Rashi'}: ${moonRashi}`}
+              variant="default"
+            />
+            <Chip
+              label={`${isTe ? 'నక్షత్రం' : 'Star'}: ${moonNak} (${moon.pada}వ పాదం)`}
+              variant="default"
+            />
+          </View>
         </Card>
+
+        {/* Report Size Preset Selector */}
+        <Card style={styles.presetCard}>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+            {isTe ? 'నివేదిక పరిమాణము ఎంచుకోండి' : 'Select Report Size'}
+          </Text>
+
+          <SegmentedControl
+            options={presetOptions}
+            selectedKey={preset}
+            onSelect={handlePresetChange}
+            style={styles.segmentedCtrl}
+          />
+
+          <View style={[styles.presetInfoBanner, { backgroundColor: colors.stripBg, borderColor: colors.border }]}>
+            <Text style={[styles.presetDesc, { color: colors.textSecondary }]}>
+              {preset === 'summary' &&
+                (isTe
+                  ? '✦ సంక్షిప్త జాతకం: ప్రాథమిక వివరాలు, D1, D9, భావములు, అష్టకవర్గము & 80 సం. మహాదశలు.'
+                  : '✦ Summary Report: Basic details, D1, D9, Houses, SAV 337, and 80-year Mahadasha overview.')}
+              {preset === 'standard' &&
+                (isTe
+                  ? '✦ ప్రామాణిక నివేదిక: సమగ్ర 16 షోడశవర్గ చక్రాలు, భావాలు, షడ్బల బలాబలాలు, లెవల్ 4 సూక్ష్మ దశల వరకు విశ్లేషణ.'
+                  : '✦ Standard Report: All 16 divisional charts, Bhava Sputa, Shadbala, and up to Level 4 Sookshma Dashas.')}
+              {preset === 'full' &&
+                (isTe
+                  ? '✦ సంపూర్ణ నివేదిక: పూర్తి 25 పుటల వేద జ్యోతిష గ్రంథం, 80 సంవత్సరాల సమగ్ర ప్రాణ దశలతో (Level 5).'
+                  : '✦ Full Complete Report: 25-page comprehensive report including all 10 stages of Level 5 Prana Dashas.')}
+            </Text>
+
+            <View style={styles.totalBadgeRow}>
+              <Text style={[styles.totalEstimateText, { color: colors.primaryDark }]}>
+                {isTe ? 'మొత్తం పుటల అంచనా: ' : 'Total Pages: '}
+                <Text style={{ fontWeight: '800' }}>
+                  {calculatedTotalPages} {isTe ? 'పుటలు' : 'Pages'}
+                </Text>
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* Customize Sections Toggle */}
+        <Card style={styles.customizerCard}>
+          <TouchableOpacity
+            style={styles.customizerHeader}
+            onPress={() => setShowCustomizer(!showCustomizer)}
+            activeOpacity={0.7}
+          >
+            <View>
+              <Text style={[styles.customizerTitle, { color: colors.text }]}>
+                {isTe ? 'విభాగాలను సర్దుబాటు చేయండి' : 'Customize Sections'}
+              </Text>
+              <Text style={[styles.customizerSub, { color: colors.textSecondary }]}>
+                {showCustomizer
+                  ? (isTe ? 'విభాగాల జాబితాను దాచడానికి నొక్కండి' : 'Tap to collapse section list')
+                  : (isTe ? 'వ్యక్తిగత విభాగాలను ఎంచుకోవడానికి నొక్కండి' : 'Tap to show/hide individual sections')}
+              </Text>
+            </View>
+            <Text style={[styles.chevronText, { color: colors.gold }]}>
+              {showCustomizer ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+
+          {showCustomizer && (
+            <View style={styles.sectionsList}>
+              {sectionItems.map(item => (
+                <View
+                  key={item.key}
+                  style={[styles.switchRow, { borderBottomColor: colors.border }]}
+                >
+                  <View style={styles.switchInfo}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.switchPageBadge, { color: colors.textMuted }]}>
+                      {item.pages} {isTe ? 'పుట' : 'page'}{item.pages > 1 ? 'లు' : ''}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={!!sections[item.key]}
+                    onValueChange={() => toggleSection(item.key)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={sections[item.key] ? colors.gold : '#f4f3f4'}
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        {/* Success Card (Shown after export) */}
+        {lastSavedReport && stage === 'complete' && (
+          <Card style={[styles.successCard, { borderColor: colors.accent.green, backgroundColor: `${colors.accent.green}10` }]}>
+            <View style={styles.successHeader}>
+              <Text style={styles.checkIcon}>✅</Text>
+              <View style={styles.successTitleArea}>
+                <Text style={[styles.successTitle, { color: colors.accent.green }]}>
+                  {isTe ? 'PDF విజయవంతంగా రూపొందించబడింది!' : 'PDF Generated Successfully!'}
+                </Text>
+                <Text style={[styles.successDetails, { color: colors.text }]}>
+                  {lastSavedReport.fileName} ({lastSavedReport.sizeFormatted} • {lastSavedReport.pageCount} {isTe ? 'పుటలు' : 'Pages'})
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.successActions}>
+              <PrimaryButton
+                title={isTe ? 'ఓపెన్ / ప్రివ్యూ' : 'Open / Preview'}
+                onPress={() => handleOpenPreview(lastSavedReport.uri)}
+                variant="primary"
+                style={styles.successActionBtn}
+              />
+              <PrimaryButton
+                title={isTe ? 'ఫోల్డర్‌కు సేవ్' : 'Save to Folder'}
+                onPress={() => handleExport('save')}
+                variant="gold"
+                style={styles.successActionBtn}
+              />
+            </View>
+          </Card>
+        )}
       </ScrollView>
+
+      {/* Sticky Bottom Action Bar */}
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View style={styles.bottomBarRow}>
+          <PrimaryButton
+            title={isTe ? `ఫోన్‌కు భద్రపరచండి (${calculatedTotalPages} పుటలు)` : `Save to Phone (${calculatedTotalPages}p)`}
+            onPress={() => handleExport('save')}
+            variant="gold"
+            style={styles.mainSaveBtn}
+          />
+          <TouchableOpacity
+            style={[styles.shareBtn, { backgroundColor: colors.stripBg, borderColor: colors.border }]}
+            onPress={() => handleExport('share')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.shareBtnText, { color: colors.primary }]}>
+              📤 {isTe ? 'షేర్' : 'Share'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Progress Stepper Modal */}
+      <Modal
+        visible={stage === 'preparing' || stage === 'generating' || stage === 'saving'}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.stepperBox, { backgroundColor: colors.surface, borderColor: colors.gold }]}>
+            <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+            <Text style={[styles.stepperTitle, { color: colors.primary }]}>
+              {isTe ? 'నివేదిక తయారవుతోంది...' : 'Generating PDF Report...'}
+            </Text>
+            <Text style={[styles.stepperSub, { color: colors.textSecondary }]}>
+              {stageMessage || (isTe ? 'దయచేసి వేచి ఉండండి...' : 'Please wait...')}
+            </Text>
+
+            <View style={styles.stagesTrack}>
+              <View style={[styles.stageItem, stage === 'preparing' && styles.stageItemActive]}>
+                <Text style={styles.stageNumber}>1</Text>
+                <Text style={[styles.stageLabel, { color: colors.text }]}>
+                  {isTe ? 'డేటా సిద్ధం' : 'Preparing'}
+                </Text>
+              </View>
+              <View style={[styles.stageItem, stage === 'generating' && styles.stageItemActive]}>
+                <Text style={styles.stageNumber}>2</Text>
+                <Text style={[styles.stageLabel, { color: colors.text }]}>
+                  {isTe ? 'PDF రూపకల్పన' : 'Rendering'}
+                </Text>
+              </View>
+              <View style={[styles.stageItem, stage === 'saving' && styles.stageItemActive]}>
+                <Text style={styles.stageNumber}>3</Text>
+                <Text style={[styles.stageLabel, { color: colors.text }]}>
+                  {isTe ? 'భద్రపరచడం' : 'Saving'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 };
@@ -175,93 +418,246 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  actionBanner: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  downloadBtn: {
-    marginVertical: 0,
-  },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  headerCard: {
-    alignItems: 'center',
     padding: spacing.lg,
+    paddingBottom: 110,
+  },
+  profileCard: {
+    padding: spacing.md,
     marginBottom: spacing.md,
   },
-  blessingText: {
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 4,
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
   },
-  guruText: {
+  profileName: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  profileBirth: {
     fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 6,
   },
-  templeTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  expertiseText: {
-    fontSize: 11,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  scholarBadge: {
-    paddingHorizontal: spacing.md,
+  myReportsBtn: {
+    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.sm,
-    marginBottom: 8,
+    borderWidth: 1,
   },
-  scholarBadgeText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+  myReportsBtnText: {
     fontSize: 12,
-    textAlign: 'center',
-  },
-  shlokaText: {
-    fontSize: 10.5,
     fontWeight: '700',
-    textAlign: 'center',
   },
-  outlineCard: {
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: 4,
+  },
+  presetCard: {
     padding: spacing.md,
-  },
-  outlineTitle: {
-    fontSize: 14,
-    fontWeight: '800',
     marginBottom: spacing.md,
   },
-  pageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: spacing.sm,
   },
-  pageBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  segmentedCtrl: {
+    marginBottom: spacing.md,
+  },
+  presetInfoBanner: {
+    padding: spacing.md,
     borderRadius: radius.sm,
-    marginRight: 10,
-    minWidth: 64,
+    borderWidth: 1,
+  },
+  presetDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  totalBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  pageBadgeText: {
-    color: '#000000',
-    fontSize: 10,
+  totalEstimateText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  customizerCard: {
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  customizerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  customizerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  customizerSub: {
+    fontSize: 12,
+  },
+  chevronText: {
+    fontSize: 16,
     fontWeight: '800',
   },
-  pageTitle: {
+  sectionsList: {
+    marginTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e7eb',
+    paddingTop: spacing.xs,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  switchInfo: {
     flex: 1,
+    marginRight: spacing.md,
+  },
+  switchTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  switchPageBadge: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  successCard: {
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1.5,
+  },
+  successHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  checkIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  successTitleArea: {
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  successDetails: {
     fontSize: 12,
-    lineHeight: 16,
+    marginTop: 2,
+  },
+  successActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  successActionBtn: {
+    flex: 1,
+    marginVertical: 0,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: -2 },
+  },
+  bottomBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  mainSaveBtn: {
+    flex: 1,
+    marginVertical: 0,
+  },
+  shareBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  stepperBox: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  spinner: {
+    marginBottom: spacing.md,
+  },
+  stepperTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  stepperSub: {
+    fontSize: 13,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  stagesTrack: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingTop: spacing.xs,
+  },
+  stageItem: {
+    alignItems: 'center',
+    flex: 1,
+    opacity: 0.4,
+  },
+  stageItemActive: {
+    opacity: 1,
+  },
+  stageNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#8b2500',
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 26,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  stageLabel: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

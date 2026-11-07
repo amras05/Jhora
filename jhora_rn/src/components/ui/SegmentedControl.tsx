@@ -81,13 +81,15 @@ export function SegmentedControl<T extends string = string>({
 
   if (scrollable) {
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContainer, style]}
-      >
-        {options.map(renderItem)}
-      </ScrollView>
+      <View style={[styles.scrollWrapper, style]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+        >
+          {options.map(renderItem)}
+        </ScrollView>
+      </View>
     );
   }
 
@@ -95,6 +97,11 @@ export function SegmentedControl<T extends string = string>({
 }
 
 const styles = StyleSheet.create({
+  scrollWrapper: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginVertical: 4,
+  },
   fittedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -105,7 +112,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 6,
+    paddingVertical: 2,
     paddingHorizontal: 2,
   },
   flexSegment: {

@@ -8,7 +8,8 @@ export type ScreenType =
   | 'saved'
   | 'birth_input'
   | 'chart_result'
-  | 'pdf_report';
+  | 'pdf_report'
+  | 'reports';
 
 export type TabType = 'home' | 'panchanga' | 'prasna' | 'saved';
 

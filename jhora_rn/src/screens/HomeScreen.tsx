@@ -13,7 +13,7 @@ import { Screen, Card } from '../components/ui';
 import { radius, spacing } from '../theme/tokens';
 
 interface Props {
-  onNavigate: (screen: 'home' | 'birth_input' | 'panchanga' | 'prasna' | 'saved') => void;
+  onNavigate: (screen: 'home' | 'birth_input' | 'panchanga' | 'prasna' | 'saved' | 'reports') => void;
   // Optional for backward compatibility with App.tsx during migration
   isDark?: boolean;
   onToggleTheme?: () => void;
@@ -220,6 +220,32 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
                 </Text>
                 <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
                   {t('home.savedSubtitle')}
+                </Text>
+              </View>
+              <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>
+            </View>
+          </Card>
+
+          {/* 5. My Reports (PDFs) */}
+          <Card
+            onPress={() => onNavigate('reports')}
+            style={styles.navCard}
+          >
+            <View style={styles.cardRow}>
+              <View
+                style={[
+                  styles.cardIconBox,
+                  { backgroundColor: `${colors.gold}25` },
+                ]}
+              >
+                <Text style={styles.cardEmoji}>📄</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  {lang === 'te' ? 'నా PDF నివేదికలు' : 'My Saved Reports'}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                  {lang === 'te' ? 'ఆఫ్‌లైన్ నివేదికలు, ప్రివ్యూ & షేర్' : 'Offline PDF Reports, Preview & Share'}
                 </Text>
               </View>
               <Text style={[styles.cardChevron, { color: colors.gold }]}>›</Text>

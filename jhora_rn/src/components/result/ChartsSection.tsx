@@ -29,6 +29,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ chartData }) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={styles.vargaScroll}
       >
         {Object.values(DivisionalChartType).map(vType => {

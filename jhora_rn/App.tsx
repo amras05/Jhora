@@ -17,6 +17,7 @@ import { PanchangaScreen } from './src/screens/PanchangaScreen';
 import { PrasnaScreen } from './src/screens/PrasnaScreen';
 import { SavedHoroscopesScreen } from './src/screens/SavedHoroscopesScreen';
 import { TeluguPdfReportScreen } from './src/screens/TeluguPdfReportScreen';
+import { ReportsScreen } from './src/screens/ReportsScreen';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import { ProfileProvider, useProfile } from './src/context/ProfileContext';
@@ -107,18 +108,28 @@ function AppContent() {
           />
         )}
 
-        {currentScreen === 'pdf_report' && pdfData && (
-          <TeluguPdfReportScreen
-            chartData={pdfData.chartData}
-            ashtakavarga={pdfData.ashtakavarga}
-            shadbala={pdfData.shadbala}
-            special={pdfData.special}
-            panchanga={pdfData.panchanga}
-            dosha={pdfData.dosha}
-            dashas={pdfData.dashas}
-            isDark={isDark}
-            lang={lang}
+        {currentScreen === 'pdf_report' && (
+          pdfData ? (
+            <TeluguPdfReportScreen
+              chartData={pdfData.chartData}
+              ashtakavarga={pdfData.ashtakavarga}
+              shadbala={pdfData.shadbala}
+              special={pdfData.special}
+              panchanga={pdfData.panchanga}
+              dosha={pdfData.dosha}
+              dashas={pdfData.dashas}
+              isDark={isDark}
+              lang={lang}
+              onBack={goBack}
+              onNavigateReports={() => navigate('reports')}
+            />
+          ) : null
+        )}
+
+        {currentScreen === 'reports' && (
+          <ReportsScreen
             onBack={goBack}
+            onNavigateNew={() => navigate('birth_input')}
           />
         )}
       </View>

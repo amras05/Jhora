@@ -32,12 +32,13 @@ import {
   ChartHeroHeader,
   ChartsSection,
   PlanetsSection,
+  ClassicalDetailsSection,
   DashaSection,
   AnalysisSection,
 } from '../components/result';
 import { spacing } from '../theme/tokens';
 
-type ResultTab = 'charts' | 'planets' | 'dasha' | 'analysis';
+type ResultTab = 'charts' | 'panchanga' | 'planets' | 'dasha' | 'analysis';
 
 interface Props {
   birthData: BirthData;
@@ -171,10 +172,12 @@ export const ChartResultScreen: React.FC<Props> = ({
           {/* Sticky Astrological Placement Stats */}
           <ChartHeroHeader chartData={chartData} />
 
-          {/* 4 Primary Segmented Tabs */}
+          {/* 5 Primary Segmented Tabs */}
           <SegmentedControl<ResultTab>
+            scrollable={true}
             options={[
               { key: 'charts', label: t('chartResult.tabCharts') },
+              { key: 'panchanga', label: isTe ? '📅 పంచాంగం & వివరాలు' : '📅 Panchangam' },
               { key: 'planets', label: t('chartResult.tabPlanets') },
               { key: 'dasha', label: t('chartResult.tabDasha') },
               { key: 'analysis', label: isTe ? '📊 విశ్లేషణ' : '📊 Analysis' },
@@ -190,6 +193,10 @@ export const ChartResultScreen: React.FC<Props> = ({
           >
             {activeTab === 'charts' && (
               <ChartsSection chartData={chartData} />
+            )}
+
+            {activeTab === 'panchanga' && (
+              <ClassicalDetailsSection chartData={chartData} panchanga={panchanga} />
             )}
 
             {activeTab === 'planets' && (
