@@ -1,0 +1,178 @@
+# Third-Party Licenses & Attributions
+
+This document provides a comprehensive inventory of third-party software, libraries, astronomical ephemerides, fonts, and assets incorporated into, integrated with, or depended upon by **SBJV Hora** (సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం).
+
+SBJV Hora is distributed under the **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**. The licensing and copyright terms of all third-party components are respected and preserved as detailed below.
+
+---
+
+## 1. Upstream Astrological Engines & Astronomical Data
+
+### 1.1 PyJHora
+- **Repository**: [https://github.com/naturalstupid/PyJHora](https://github.com/naturalstupid/PyJHora)
+- **Author / Maintainer**: Sundar Sundaresan (`naturalstupid`)
+- **Astrological Foundation**: Based on *"Vedic Astrology - An Integrated Approach"* and the *Jagannatha Hora (JHora)* software by **P.V.R. Narasimha Rao**
+- **License**: **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**
+- **Copyright**: Copyright (C) 2020–2024 Sundar Sundaresan
+- **License Summary & Compatibility**:
+  PyJHora is licensed under AGPL-3.0-or-later. SBJV Hora’s core Parashari calculation logic and validation benchmarks are directly compatible with PyJHora under GNU AGPL-3.0-or-later. Under Section 13 of the AGPL, any remote network execution of modified versions requires providing Corresponding Source to users.
+
+---
+
+### 1.2 Swiss Ephemeris & pyswisseph
+- **Upstream C Library**: Swiss Ephemeris by **Astrodienst AG** (Dieter Koch, Alois Treindl)
+  - **Website**: [https://www.astro.com/swisseph/](https://www.astro.com/swisseph/)
+- **Python Bindings**: `pyswisseph` by Thomas Mack
+  - **Repository**: [https://github.com/astrorigin/pyswisseph](https://github.com/astrorigin/pyswisseph)
+- **License**: **GNU Affero General Public License v3.0 (AGPL-3.0)** / **GNU GPL v2 or later** / Commercial License
+- **Copyright**:
+  - Copyright (C) 1997–2024 Astrodienst AG, Switzerland
+  - Copyright (C) 2014–2024 Thomas Mack
+- **License Summary & Compatibility**:
+  The Swiss Ephemeris and `pyswisseph` are distributed under the AGPLv3 (and historically GPLv2+). When used in SBJV Hora without a separate commercial license from Astrodienst AG, the entire application and any network services communicating with it must comply with the AGPL-3.0 copyleft terms. Note: Ephemeris data files (`.se1`) from Astrodienst are subject to Astrodienst's public license conditions.
+
+---
+
+## 2. Bundled Typography & Fonts
+
+### 2.1 Noto Sans Telugu (`NotoSansTelugu-Regular.ttf`, `NotoSansTelugu-Bold.ttf`)
+- **Author**: Google LLC
+- **Repository**: [https://github.com/notofonts/telugu](https://github.com/notofonts/telugu)
+- **License**: **SIL Open Font License, Version 1.1 (OFL-1.1)**
+- **Copyright**: Copyright (C) 2012–2024 Google LLC
+- **License Summary & Compatibility**:
+  The SIL OFL 1.1 is a permissive, open-source font license. It explicitly permits bundling, redistribution, and inclusion with any software (whether commercial, open source, or copyleft under AGPLv3). The only restrictions are that the font software cannot be sold by itself, and reserved font names must be respected if modified.
+
+---
+
+## 3. Direct Application Dependencies (Mobile & Web Frontend)
+
+All direct dependencies declared in `jhora_rn/package.json`:
+
+| Package | Version | Author / Maintainer | Declared License | SPDX Identifier |
+| :--- | :--- | :--- | :--- | :--- |
+| `expo` | `~58.0.22` | 650 Industries, Inc. | MIT License | `MIT` |
+| `expo-file-system` | `~58.0.0` | 650 Industries, Inc. | MIT License | `MIT` |
+| `expo-print` | `~58.0.0` | 650 Industries, Inc. | MIT License | `MIT` |
+| `expo-sharing` | `~58.0.0` | 650 Industries, Inc. | MIT License | `MIT` |
+| `expo-status-bar` | `~58.0.4` | 650 Industries, Inc. | MIT License | `MIT` |
+| `react` | `19.3.0` | Meta Platforms, Inc. | MIT License | `MIT` |
+| `react-dom` | `19.3.0` | Meta Platforms, Inc. | MIT License | `MIT` |
+| `react-native` | `0.88.1` | Meta Platforms, Inc. | MIT License | `MIT` |
+| `react-native-svg` | `15.12.1` | Horcrux / Software Mansion | MIT License | `MIT` |
+| `react-native-web` | `^0.21.4` | Nicolas Gallagher | MIT License | `MIT` |
+| `@types/react` | `~19.3.0` | DefinitelyTyped contributors | MIT License | `MIT` |
+| `typescript` | `~6.0.3` | Microsoft Corporation | Apache License 2.0 | `Apache-2.0` |
+
+---
+
+## 4. Transitive Dependencies License Inventory
+
+An automated license audit of all 429 transitive dependencies in `jhora_rn/node_modules` shows the following distribution:
+
+| License | Package Count | License Category | Compatibility with AGPL-3.0 |
+| :--- | :--- | :--- | :--- |
+| **MIT** | 369 | Permissive | **Fully Compatible** (Can be combined into AGPL work) |
+| **ISC** | 22 | Permissive | **Fully Compatible** |
+| **BSD-2-Clause** | 10 | Permissive | **Fully Compatible** |
+| **BSD-3-Clause** | 6 | Permissive | **Fully Compatible** |
+| **Apache-2.0** | 6 | Permissive with Patent Clause | **Compatible** (Apache-2.0 code can be included in AGPLv3 works under FSF guidelines) |
+| **BlueOak-1.0.0** | 5 | Permissive (Modern MIT equivalent) | **Fully Compatible** |
+| **Unlicense** | 2 | Public Domain dedication | **Fully Compatible** |
+| **0BSD** | 1 | Permissive (Zero-clause) | **Fully Compatible** |
+| **CC0-1.0** | 1 | Public Domain dedication | **Fully Compatible** |
+| **Python-2.0** | 1 | Permissive (`argparse`) | **Fully Compatible** |
+| **(MIT OR CC0-1.0)** | 1 | Dual Permissive | **Fully Compatible** |
+| **(MIT OR Apache-2.0)** | 1 | Dual Permissive | **Fully Compatible** |
+| **(BSD-3-Clause OR GPL-2.0)** | 1 | Dual Permissive / Copyleft (`node-forge`) | **Fully Compatible** (via BSD-3-Clause option) |
+| **MPL-2.0** | 2 | Weak Copyleft (`lightningcss`) | **Compatible as Independent Module** (File-level copyleft; build tool only) |
+| **CC-BY-4.0** | 1 | Attribution Data (`caniuse-lite`) | **Compatible as External Data Asset** |
+
+---
+
+## 5. Specific Analysis of Weak Copyleft, Data, and Dual Licenses
+
+### 5.1 `lightningcss` & `lightningcss-darwin-arm64` (MPL-2.0)
+- **License**: Mozilla Public License 2.0 (`MPL-2.0`)
+- **Role**: Build-time CSS compiler and minifier used internally by Expo CLI / Metro.
+- **Compatibility Analysis**:
+  MPL-2.0 is a file-level copyleft license. It applies strictly to modifications made directly to MPL-2.0 source files. It is not incorporated into the runtime mobile bundle as application code. Furthermore, Section 3.3 of MPL-2.0 allows distributing MPL-2.0 software as part of a Larger Work under a different license, provided the requirements of the MPL are met for the MPL-covered files.
+
+### 5.2 `node-forge` ((BSD-3-Clause OR GPL-2.0))
+- **License**: Dual-licensed under `BSD-3-Clause` OR `GPL-2.0`
+- **Role**: Cryptographic routines used by build tooling and local dev server certificates.
+- **Compatibility Analysis**:
+  Because `node-forge` offers the `BSD-3-Clause` option, SBJV Hora exercises the `BSD-3-Clause` permissive option, which is fully compatible with inclusion into an AGPL-3.0 project without triggering any GPL-2.0-only conflicts.
+
+### 5.3 `caniuse-lite` (CC-BY-4.0)
+- **License**: Creative Commons Attribution 4.0 International (`CC-BY-4.0`)
+- **Role**: Browser and platform capability database queried during development and bundle compilation.
+- **Compatibility Analysis**:
+  `caniuse-lite` is a data package containing statistical browser support matrices. It is used as a reference build tool dependency and is attributed here in compliance with the CC-BY-4.0 attribution requirement.
+
+---
+
+## 6. Upstream License Text Excerpts
+
+### 6.1 MIT License
+```
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### 6.2 SIL Open Font License (OFL-1.1) Excerpt
+```
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide development
+of collaborative font projects, to support the font creation efforts of
+academic and linguistic communities, and to provide a free and open framework
+in which fonts may be shared and improved in partnership with others.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of the Font Software, to use, study, copy, merge, embed, modify, redistribute,
+and sell modified and unmodified copies of the Font Software, subject to the
+following conditions:
+1) Neither the Font Software nor any of its individual components, in Original
+or Modified Versions, may be sold by itself.
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy contains
+the above copyright notice and this license.
+```
+
+### 6.3 Apache License, Version 2.0 Excerpt
+```
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+---
+
+## 7. Contact for Licensing Inquiries
+
+For questions regarding third-party licensing, upstream attributions, or copyright compliance, please open an issue in the project repository or review [CONTRIBUTING.md](CONTRIBUTING.md).
+

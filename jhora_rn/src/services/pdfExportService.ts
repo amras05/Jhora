@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -153,6 +172,47 @@ export class PdfExportService {
   }
 
   /**
+   * Converts any URI (including content:// or bare paths) to a guaranteed local file:// URI
+   * required by ExpoSharing on Android.
+   */
+  static async ensureLocalFileUri(inputUri: string, fallbackFileName: string = 'report.pdf'): Promise<string> {
+    if (inputUri.startsWith('file://')) {
+      return inputUri;
+    }
+
+    const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+    const tempPath = `${cacheDir}share_${Date.now()}_${fallbackFileName}`;
+
+    if (inputUri.startsWith('content:')) {
+      try {
+        const base64Data = await FileSystem.readAsStringAsync(inputUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        await FileSystem.writeAsStringAsync(tempPath, base64Data, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        return tempPath.startsWith('file://') ? tempPath : `file://${tempPath}`;
+      } catch (readErr) {
+        try {
+          await FileSystem.copyAsync({
+            from: inputUri,
+            to: tempPath,
+          });
+          return tempPath.startsWith('file://') ? tempPath : `file://${tempPath}`;
+        } catch (copyErr) {
+          console.warn('Failed to copy content URI to local cache:', copyErr);
+        }
+      }
+    }
+
+    if (inputUri.startsWith('/')) {
+      return `file://${inputUri}`;
+    }
+
+    return inputUri.startsWith('file://') ? inputUri : `file://${inputUri}`;
+  }
+
+  /**
    * Save the PDF directly to device user storage (Downloads / Documents / Files).
    * Remembers Android SAF directory preference for one-tap subsequent saves.
    */
@@ -258,18 +318,7 @@ export class PdfExportService {
       // 3. Fallback: Native Share Sheet (Save to Files on iOS / Android)
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
-        let shareTarget = uri;
-        if (shareTarget.startsWith('content://')) {
-          const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
-          const tempPath = `${cacheDir}share_${Date.now()}.pdf`;
-          await FileSystem.copyAsync({
-            from: shareTarget,
-            to: tempPath,
-          });
-          shareTarget = tempPath;
-        } else if (!shareTarget.startsWith('file://')) {
-          shareTarget = `file://${shareTarget}`;
-        }
+        const shareTarget = await this.ensureLocalFileUri(uri, fileName);
 
         await Sharing.shareAsync(shareTarget, {
           UTI: '.pdf',
@@ -306,22 +355,12 @@ export class PdfExportService {
       throw new Error('Sharing is not available on this device');
     }
 
-    let targetUri = uri;
-    if (targetUri.startsWith('content://')) {
-      const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
-      const tempPath = `${cacheDir}share_${Date.now()}.pdf`;
-      await FileSystem.copyAsync({
-        from: targetUri,
-        to: tempPath,
-      });
-      targetUri = tempPath;
-    } else if (!targetUri.startsWith('file://')) {
-      targetUri = `file://${targetUri}`;
-    }
+    const targetUri = await this.ensureLocalFileUri(uri);
 
     await Sharing.shareAsync(targetUri, {
       UTI: '.pdf',
       mimeType: 'application/pdf',
+      dialogTitle: 'జాతక చక్రం PDF నివేదిక',
     });
   }
 

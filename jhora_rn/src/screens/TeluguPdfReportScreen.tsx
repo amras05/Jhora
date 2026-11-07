@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -263,8 +282,8 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
                   : '✦ Standard Report: All 16 divisional charts, Bhava Sputa, Shadbala, and up to Level 4 Sookshma Dashas.')}
               {preset === 'full' &&
                 (isTe
-                  ? '✦ సంపూర్ణ నివేదిక: పూర్తి 25 పుటల వేద జ్యోతిష గ్రంథం, 80 సంవత్సరాల సమగ్ర ప్రాణ దశలతో (Level 5).'
-                  : '✦ Full Complete Report: 25-page comprehensive report including all 10 stages of Level 5 Prana Dashas.')}
+                  ? `✦ సంపూర్ణ నివేదిక: పూర్తి ${calculatedTotalPages} పుటల సమగ్ర వేద జ్యోతిష గ్రంథం, 80 సంవత్సరాల సమగ్ర ప్రాణ దశలతో (Level 5).`
+                  : `✦ Full Complete Report: Comprehensive ${calculatedTotalPages}-page report including all 10 stages of Level 5 Prana Dashas.`)}
             </Text>
 
             <View style={styles.totalBadgeRow}>

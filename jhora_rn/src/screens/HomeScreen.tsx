@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import React from 'react';
 import {
   StyleSheet,
@@ -6,6 +25,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../i18n';
@@ -265,6 +285,23 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
             {t('home.astrologerAddress')}
           </Text>
         </Card>
+
+        {/* Open Source AGPL-3.0 License & Source Availability (Section 13) */}
+        <TouchableOpacity
+          style={[styles.licensePill, { borderColor: `${colors.border}` }]}
+          onPress={() => {
+            Alert.alert(
+              'GNU AGPL-3.0 Open Source',
+              'SBJV Hora is free and open-source software licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later).\n\nUnder AGPL Section 13, all network and remote users are entitled to the Corresponding Source code free of charge.\n\nUpstream: PyJHora & Swiss Ephemeris.',
+              [{ text: 'OK' }]
+            );
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.licenseText, { color: colors.textMuted }]}>
+            ⚖️ GNU AGPL-3.0-or-later • Open Source
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </Screen>
   );
@@ -426,5 +463,19 @@ const styles = StyleSheet.create({
   astroAddress: {
     fontSize: 11,
     textAlign: 'center',
+  },
+  licensePill: {
+    marginTop: spacing.md,
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  licenseText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

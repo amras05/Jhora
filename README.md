@@ -76,7 +76,9 @@ A comprehensive Vedic Astrology (Jyotish) mobile application built with React Na
 ```
 Jhora/
 ├── README.md                   # Project documentation
-├── LICENSE                     # GNU General Public License v3.0
+├── LICENSE                     # GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)
+├── THIRD_PARTY_LICENSES        # Inventory of third-party dependencies & upstream licenses
+├── CONTRIBUTING.md             # Contributor licensing & collaboration guidelines
 ├── AGENTS.md                   # Architecture & developer rules
 ├── python_server/              # High-precision Swiss Ephemeris microservice
 └── jhora_rn/                   # React Native / Expo Application
@@ -157,10 +159,30 @@ cd jhora_rn/android
 
 ---
 
-## ⚖️ License
+## ⚖️ Open Source License
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
-See the [LICENSE](LICENSE) file for the full license text.
+This project is free software licensed under the **GNU Affero General Public License v3.0 or later (GNU AGPL-3.0-or-later)**.  
+SPDX-License-Identifier: `AGPL-3.0-or-later`
 
-Copyright (C) 2024–2026 **సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం** (M.B.S. Sastry & SBJV Hora Team).  
-*All rights reserved under classical Jyotish tradition.*
+See the root [LICENSE](LICENSE) file for the complete, official license terms.
+
+### Your Freedoms Under the GNU AGPLv3
+- **Run & Use**: You may freely run and use this software for private, spiritual, research, educational, or commercial purposes.
+- **Study & Inspect**: You have access to the complete source code to study its astronomical formulas and Parashari algorithms.
+- **Modify**: You may modify, adapt, and extend the calculations, charts, and reporting engine.
+- **Redistribute**: You may redistribute verbatim copies or your modified versions, provided that you grant the exact same freedoms to all recipients under the GNU AGPL-3.0-or-later.
+
+### Network User Source Code Availability (AGPL Section 13)
+Under **Section 13 of the GNU AGPLv3**, if you modify this application and run it on a server or network service that users interact with remotely (such as a web application, hosted calculation API, or cloud service):
+> You **must** prominently offer all users interacting with it remotely an opportunity to receive the Corresponding Source of your modified version at no charge, through standard means of software distribution (such as a direct download link or public source code repository).
+
+This guarantees that cloud and network users retain the exact same software freedoms as traditional local software recipients.
+
+### Third-Party Licenses & Compatibility
+This application builds upon and integrates algorithms inspired by classical literature, the **PyJHora** engine (AGPL-3.0-or-later), the **Swiss Ephemeris** (`pyswisseph`, AGPL-3.0 / GPL-2.0+), and modern open-source UI libraries.
+- For a comprehensive inventory of all direct and transitive third-party dependencies and their licenses, please consult [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+- For the full legal audit report, see [docs/licensing-audit.md](docs/licensing-audit.md).
+- To contribute to the project, please review [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Copyright (C) 2024–2026 **Karrthikeya Sarma (SBJV Hora Team)** & **సాయి బాలా త్రిపుర సుందరీ జ్యోతిషాలయం** (M.B.S. Sastry).  
+*Dedicated to truth, precision, and the classical Jyotish tradition.*

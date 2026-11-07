@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import { AstroConstants } from '../constants/astroConstants';
 import {
   ChartData,
@@ -235,10 +254,10 @@ export class TeluguPdfReportGenerator {
     out.push(getPdfFontCss());
     out.push('  @page { size: 210mm 297mm; margin: 0; }');
     out.push('  * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }');
-    out.push('  html, body { width: 210mm; margin: 0; padding: 0; background: #ffffff; font-family: "NotoTelugu", "Noto Sans Telugu", "Gautami", serif, sans-serif; color: #2b1d0c; font-size: 8.5pt; line-height: 1.35; }');
-    out.push('  .page-card { width: 210mm; height: 290mm; max-height: 290mm; min-height: 290mm; box-sizing: border-box; padding: 6mm 8mm 5mm 8mm; margin: 0 !important; background: #ffffff; border: 1.5px solid #d4af37; page-break-after: always !important; break-after: page !important; page-break-inside: avoid !important; break-inside: avoid !important; overflow: hidden !important; display: flex; flex-direction: column; justify-content: space-between; }');
+    out.push('  html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #ffffff; font-family: "NotoTelugu", "Noto Sans Telugu", "Gautami", serif, sans-serif; color: #2b1d0c; font-size: 8.5pt; line-height: 1.35; }');
+    out.push('  .page-card { width: 210mm; height: 297mm; max-height: 297mm; min-height: 297mm; box-sizing: border-box; padding: 6mm 8mm 6mm 8mm; margin: 0 !important; background: #ffffff; border: 1.5px solid #d4af37; page-break-after: always !important; break-after: page !important; page-break-inside: avoid !important; break-inside: avoid !important; overflow: hidden !important; display: flex; flex-direction: column; justify-content: space-between; }');
     out.push('  .page-card:last-child, .page-card:last-of-type { page-break-after: avoid !important; break-after: avoid !important; }');
-    out.push('  .page-content { flex: 1; overflow: hidden; }');
+    out.push('  .page-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }');
     out.push('  .main-header { text-align: center; border: 1.5px solid #8b2500; outline: 1px solid #d4af37; outline-offset: -3px; background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fffcf2 45%, #faedd7 100%); padding: 8px 12px 6px 12px; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(107, 17, 17, 0.06); }');
     out.push('  .top-blessing-row { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 2px; }');
     out.push('  .top-blessing { font-size: 11.5pt; font-weight: 800; color: #8b2500; margin: 0; letter-spacing: 0.5px; }');
@@ -273,11 +292,11 @@ export class TeluguPdfReportGenerator {
     out.push('  .footer-note { flex-shrink: 0 !important; margin-top: auto !important; display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 7.5pt !important; color: #78350f !important; border-top: 1px solid #d4af37 !important; padding-top: 3px !important; min-height: 16px !important; }');
     out.push('  @media print {');
     out.push('    @page { size: 210mm 297mm; margin: 0; }');
-    out.push('    html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; }');
+    out.push('    html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; }');
     out.push('    .no-print { display: none !important; }');
-    out.push('    .page-card { width: 210mm !important; height: 290mm !important; max-height: 290mm !important; min-height: 290mm !important; margin: 0 !important; padding: 6mm 8mm 5mm 8mm !important; page-break-after: always !important; break-after: page !important; page-break-inside: avoid !important; break-inside: avoid !important; overflow: hidden !important; border: 1.5px solid #d4af37 !important; box-shadow: none !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; }');
+    out.push('    .page-card { width: 210mm !important; height: 297mm !important; max-height: 297mm !important; min-height: 297mm !important; margin: 0 !important; padding: 6mm 8mm 6mm 8mm !important; page-break-after: always !important; break-after: page !important; page-break-inside: avoid !important; break-inside: avoid !important; overflow: hidden !important; border: 1.5px solid #d4af37 !important; box-shadow: none !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; }');
     out.push('    .page-card:last-child, .page-card:last-of-type { page-break-after: avoid !important; break-after: avoid !important; }');
-    out.push('    .footer-note { flex-shrink: 0 !important; margin-top: auto !important; display: flex !important; justify-content: space-between !important; min-height: 16px !important; }');
+    out.push('    .footer-note { flex-shrink: 0 !important; margin-top: auto !important; display: flex !important; justify-content: space-between !important; align-items: center !important; min-height: 18px !important; }');
     out.push('  }');
     out.push('</style>');
     out.push('</head>');
@@ -928,23 +947,26 @@ export class TeluguPdfReportGenerator {
       }
     }
 
-    // ── CLOSING PAGE: పరిహారాలు (Pariharalu - Empty Page with Astrologer Contact Footer Card) ──
+    // ── CLOSING PAGE: పరిహారములు (Pariharalu - Clean Reminded/Notes Page with Astrologer Contact Footer Card) ──
     if (sec.blessingPage) {
-      out.push('<div class="page-card" style="display: flex !important; flex-direction: column !important; justify-content: space-between !important; height: 290mm !important;">');
-      out.push('  <div>');
-      out.push('    <div style="text-align: center; border-bottom: 2px solid #8b2500; padding-bottom: 8px; margin-top: 10px; margin-bottom: 20px;">');
-      out.push('      <span style="font-size: 16pt; font-weight: 800; color: #8b2500; letter-spacing: 0.5px;">పరిహారాలు (Pariharalu)</span>');
-      out.push('    </div>');
+      out.push('<div class="page-card">');
+      out.push('  <div style="text-align: center; border-bottom: 2px solid #8b2500; padding-bottom: 6px; margin-top: 4px; margin-bottom: 12px;">');
+      out.push('    <span style="font-size: 16pt; font-weight: 800; color: #8b2500; letter-spacing: 0.5px;">పరిహారములు (Pariharalu)</span>');
       out.push('  </div>');
-      out.push('  <div style="flex: 1;"></div>');
-      out.push('  <div style="margin-top: auto;">');
-      out.push('    <div style="border: 2px solid #8b2500; outline: 1px solid #d4af37; outline-offset: -3px; background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fffcf2 45%, #faedd7 100%); padding: 14px 20px; border-radius: 8px; text-align: center; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(107, 17, 17, 0.05);">');
+      out.push('  <div style="flex: 1; border: 1.5px dashed #d4af37; border-radius: 8px; background: #fffdf8; padding: 14px 16px; margin-bottom: 12px; display: flex; flex-direction: column;">');
+      out.push('    <div style="font-size: 10pt; font-weight: 700; color: #8b2500; border-bottom: 1px dashed #d4af37; padding-bottom: 6px;">');
+      out.push('      ❖ జ్యోతిష్యుల వారి ప్రత్యేక సూచనలు / దైవ పరిహారములు (Astrologer\'s Recommendations & Remedies):');
+      out.push('    </div>');
+      out.push('    <div style="flex: 1;"></div>');
+      out.push('  </div>');
+      out.push('  <div style="flex-shrink: 0;">');
+      out.push('    <div style="border: 2px solid #8b2500; outline: 1px solid #d4af37; outline-offset: -3px; background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fffcf2 45%, #faedd7 100%); padding: 12px 18px; border-radius: 8px; text-align: center; margin-bottom: 6px; box-shadow: 0 2px 8px rgba(107, 17, 17, 0.05);">');
       out.push('      <div style="font-size: 13pt; font-weight: 800; color: #8b2500; letter-spacing: 0.5px;">|| శుభం భూయాత్ • సర్వేజనాః సుఖినో భవంతు ||</div>');
-      out.push('      <div style="margin-top: 8px; font-size: 10.5pt; color: #3e1b00; font-weight: 700; line-height: 1.6;">');
+      out.push('      <div style="margin-top: 6px; font-size: 10pt; color: #3e1b00; font-weight: 700; line-height: 1.5;">');
       out.push('        జాతక పరిశీలన, వివాహ పొంతనలు, వాస్తు నిర్ణయాలు & సంఖ్యాశాస్త్ర సంప్రదింపులకు:<br>');
-      out.push(`        <b style="font-size: 12pt; color: #8b2500;">${this.astrologerTitleAndMobile}</b><br>`);
+      out.push(`        <b style="font-size: 11.5pt; color: #8b2500;">${this.astrologerTitleAndMobile}</b><br>`);
       out.push(`        కార్యాలయ చిరునామా: <b>${this.astrologerAddress}</b><br>`);
-      out.push(`        <span style="font-size: 9.5pt; color: #6b1111;"><b>${this.appTitle}</b> — సంపూర్ణ వేద జ్యోతిష సేవా నిలయం</span>`);
+      out.push(`        <span style="font-size: 9pt; color: #6b1111;"><b>${this.appTitle}</b> — సంపూర్ణ వేద జ్యోతిష సేవా నిలయం</span>`);
       out.push('      </div>');
       out.push('    </div>');
       out.push(makeFooter(currentPageNo++));

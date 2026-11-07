@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+# Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
 """
 Vedic Astrology Calculation Server.
 Provides high-precision planetary positions, 16 Parashara Shodashavarga
@@ -498,7 +511,23 @@ class AstroHandler(BaseHTTPRequestHandler):
             self._handle_calculate(parse_qs(parsed.query))
         elif parsed.path == '/health':
             engine_str = 'Swiss Ephemeris with Lahiri Ayanamsa' if HAVE_SWE else 'Meeus Pure Python with Lahiri Ayanamsa'
-            self._send_json({'status': 'ok', 'engine': engine_str, 'port': PORT})
+            self._send_json({'status': 'ok', 'engine': engine_str, 'port': PORT, 'license': 'AGPL-3.0-or-later'})
+        elif parsed.path == '/source':
+            self._send_json({
+                'project': 'SBJV Hora (Vedic Astrology Calculation Microservice)',
+                'license': 'GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)',
+                'spdx': 'AGPL-3.0-or-later',
+                'section_13_compliance': 'Corresponding Source code is available to all network users under AGPL Section 13 at no charge.',
+                'repository': 'https://github.com/naturalstupid/PyJHora',
+                'copyright': 'Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)'
+            })
+        elif parsed.path == '/license':
+            self._send_json({
+                'license': 'GNU Affero General Public License v3.0 or later',
+                'spdx': 'AGPL-3.0-or-later',
+                'terms_url': 'https://www.gnu.org/licenses/agpl-3.0.html',
+                'source_access': 'See /source for source code access under Section 13 of GNU AGPLv3.'
+            })
         else:
             self._send_json({'error': 'Not found'}, 404)
 
@@ -539,6 +568,8 @@ class AstroHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('X-License', 'AGPL-3.0-or-later')
+        self.send_header('X-Source-Code', '/source')
         self.end_headers()
         self.wfile.write(body)
 

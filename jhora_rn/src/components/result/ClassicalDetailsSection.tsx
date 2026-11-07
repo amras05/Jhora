@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2024-2026 Karrthikeya Sarma (SBJV Hora Team)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -40,9 +59,6 @@ export const ClassicalDetailsSection: React.FC<Props> = ({ chartData, panchanga 
   });
 
   const toggleSection = (key: string) => {
-    try {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    } catch (_) {}
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -243,6 +259,25 @@ export const ClassicalDetailsSection: React.FC<Props> = ({ chartData, panchanga 
           </View>
         )}
       </View>
+
+      {/* ── 6. జ్యోతిష్యాలయ సంప్రదింపుల వివరాలు (Astrologer Contact Card - Image 3) ── */}
+      <View style={[styles.astroCard, { borderColor: '#8b2500', backgroundColor: isDark ? '#26190e' : '#FFFDF5' }]}>
+        <Text style={[styles.astroBlessing, { color: '#8b2500' }]}>
+          || శుభం భూయాత్ • సర్వేజనాః సుఖినో భవంతు ||
+        </Text>
+        <Text style={[styles.astroServices, { color: isDark ? '#d4af37' : '#78350f' }]}>
+          జాతక పరిశీలన, వివాహ పొంతనలు, వాస్తు నిర్ణయాలు & సంఖ్యాశాస్త్ర సంప్రదింపులకు:
+        </Text>
+        <Text style={[styles.astroScholar, { color: '#8b2500' }]}>
+          జ్యోతిష విద్యాభూషణ-M.B.S.Sastry-9030166610
+        </Text>
+        <Text style={[styles.astroAddress, { color: colors.text }]}>
+          కార్యాలయ చిరునామా: భవానీపురం, విజయవాడ - 12 (BHAVANIPURAM VIJAYAWADA 12)
+        </Text>
+        <Text style={[styles.astroTitle, { color: '#6b1111' }]}>
+          సాయి బాలా త్రిపుర సుందరీ జ్యోతిష్యాలయం — సంపూర్ణ వేద జ్యోతిష సేవా నిలయం
+        </Text>
+      </View>
     </View>
   );
 };
@@ -323,6 +358,47 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
     fontWeight: '600',
     lineHeight: 15,
+  },
+  astroCard: {
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  astroBlessing: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  astroServices: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  astroScholar: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginVertical: 4,
+  },
+  astroAddress: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  astroTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
 
