@@ -34,26 +34,33 @@ export class SavedHoroscopeService {
   }
 
   static async save(profile: BirthData): Promise<void> {
+    if (!profile.id) {
+      profile.id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    }
     const existing = await this.load();
-    const filtered = existing.filter(p => p.name !== profile.name);
+    const filtered = existing.filter(p => (profile.id ? p.id !== profile.id : p.name !== profile.name));
     filtered.unshift(profile);
     this.memCache = filtered;
 
     try {
       const file = new File(Paths.document, 'saved_horoscopes.json');
       await file.write(JSON.stringify(filtered));
-    } catch (_) {}
+    } catch (err) {
+      console.error('SavedHoroscopeService write error:', err);
+    }
   }
 
-  static async delete(name: string): Promise<void> {
+  static async delete(idOrName: string): Promise<void> {
     const existing = await this.load();
-    const filtered = existing.filter(p => p.name !== name);
+    const filtered = existing.filter(p => p.id !== idOrName && p.name !== idOrName);
     this.memCache = filtered;
 
     try {
       const file = new File(Paths.document, 'saved_horoscopes.json');
       await file.write(JSON.stringify(filtered));
-    } catch (_) {}
+    } catch (err) {
+      console.error('SavedHoroscopeService delete write error:', err);
+    }
   }
 }
 

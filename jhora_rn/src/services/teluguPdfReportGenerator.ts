@@ -13,6 +13,8 @@ import {
 import { DivisionalChartService } from './divisionalChartService';
 import { DashaService } from './dashaService';
 import { ClassicalAstrologyService } from './classicalAstrologyService';
+import { YogaService, VedicYoga } from './yogaService';
+import { TransitService, GocharAnalysis } from './transitService';
 import { getPdfFontCss } from './pdfFonts';
 
 export type PdfPreset = 'summary' | 'standard' | 'full';
@@ -26,6 +28,8 @@ export interface PdfSectionOptions {
   shodashavargaPart4?: boolean; // D30, D40, D45, D60
   bhavaAndSav?: boolean; // Houses + SAV 337
   shadbalaAndSpecial?: boolean; // Shadbala + Bhrigu Bindu + Chara Karakas
+  yogasAndDoshas?: boolean; // Yogas & Doshas Analysis
+  gocharAnalysis?: boolean; // Current Transits & Sade Sati
   dashaOverview?: boolean; // 120yr overview + 0-40 yrs
   dashaAntar40to80?: boolean; // 40-80 yrs
   pratyantarDashas?: boolean; // Level 3 (3 pages)
@@ -104,6 +108,8 @@ export class TeluguPdfReportGenerator {
         shodashavargaPart4: false,
         bhavaAndSav: true,
         shadbalaAndSpecial: true,
+        yogasAndDoshas: true,
+        gocharAnalysis: false,
         dashaOverview: true,
         dashaAntar40to80: true,
         pratyantarDashas: false,
@@ -121,6 +127,8 @@ export class TeluguPdfReportGenerator {
         shodashavargaPart4: true,
         bhavaAndSav: true,
         shadbalaAndSpecial: true,
+        yogasAndDoshas: true,
+        gocharAnalysis: true,
         dashaOverview: true,
         dashaAntar40to80: true,
         pratyantarDashas: true,
@@ -139,6 +147,8 @@ export class TeluguPdfReportGenerator {
         shodashavargaPart4: true,
         bhavaAndSav: true,
         shadbalaAndSpecial: true,
+        yogasAndDoshas: true,
+        gocharAnalysis: true,
         dashaOverview: true,
         dashaAntar40to80: true,
         pratyantarDashas: true,
@@ -165,6 +175,8 @@ export class TeluguPdfReportGenerator {
     if (sec.shodashavargaPart4) total += 1;
     if (sec.bhavaAndSav) total += 1;
     if (sec.shadbalaAndSpecial) total += 1;
+    if (sec.yogasAndDoshas) total += 1;
+    if (sec.gocharAnalysis) total += 1;
     if (sec.dashaOverview) total += 1;
     if (sec.dashaAntar40to80) total += 1;
     if (sec.pratyantarDashas) total += 3;
@@ -183,10 +195,14 @@ export class TeluguPdfReportGenerator {
       panchanga: PanchangaData;
       dosha: DoshaAnalysis;
       dashas: DashaPeriod[];
+      yogas?: VedicYoga[];
+      gochar?: GocharAnalysis | null;
     },
     options?: PdfOptions
   ): string {
-    const { chartData, ashtakavarga, shadbala, special, panchanga, dashas } = params;
+    const { chartData, ashtakavarga, shadbala, special, panchanga, dosha, dashas } = params;
+    const yogasList = params.yogas || YogaService.detectYogas(chartData);
+    const gocharData = params.gochar || TransitService.calculateGochar(chartData, new Date(), ashtakavarga);
     const sec = this.resolveSectionOptions(options);
     const totalReportPages = this.countTotalPages(options);
     let currentPageNo = 1;
@@ -213,7 +229,7 @@ export class TeluguPdfReportGenerator {
     out.push('<html lang="te">');
     out.push('<head>');
     out.push('<meta charset="UTF-8">');
-    out.push(`<title>${this.blessingHeader} • ${this.appTitle} - ${birth.name || 'జాతక చక్రము'}</title>`);
+    out.push(`<title>${this.blessingHeader} • ${this.appTitle} - ${this.esc(birth.name || 'జాతక చక్రము')}</title>`);
     out.push('<style>');
     // Embedded 100% offline fonts (zero network call, airplane mode friendly)
     out.push(getPdfFontCss());
@@ -293,10 +309,10 @@ export class TeluguPdfReportGenerator {
       out.push('      <div>');
       out.push('        <div class="section-title">1. జాతక ప్రాథమిక వివరాలు</div>');
       out.push('        <table class="data-table">');
-      out.push(`          <tr><td class="bold" style="width:38%;">పేరు:</td><td><b>${birth.name || 'శ్రీ / కుమారి'}</b></td></tr>`);
+      out.push(`          <tr><td class="bold" style="width:38%;">పేరు:</td><td><b>${this.esc(birth.name || 'శ్రీ / కుమారి')}</b></td></tr>`);
       out.push(`          <tr><td class="bold">తేదీ / వారం:</td><td>${this.formatDate(birth.dateTime)}, ${weekdayTel}</td></tr>`);
       out.push(`          <tr><td class="bold">సమయము:</td><td>${this.formatTime(birth.dateTime)}</td></tr>`);
-      out.push(`          <tr><td class="bold">జన్మ స్థలము:</td><td>${birth.placeName}</td></tr>`);
+      out.push(`          <tr><td class="bold">జన్మ స్థలము:</td><td>${this.esc(birth.placeName)}</td></tr>`);
       out.push(`          <tr><td class="bold">అక్షాంశ/రేఖాంశం:</td><td>${birth.latitude.toFixed(2)}° N, ${birth.longitude.toFixed(2)}° E</td></tr>`);
       out.push(`          <tr><td class="bold">ఆయనాంశము:</td><td>లాహిరి (${this.formatDms(chartData.ayanamsa)})</td></tr>`);
       out.push('        </table>');
@@ -544,6 +560,91 @@ export class TeluguPdfReportGenerator {
       out.push('      <div style="font-weight:700; color:#6b1111; font-size:9pt; margin-bottom:2px;">✦ భృగు బిందువు విశేష ఫలితము:</div>');
       out.push('      <div style="font-size:8pt; color:#3e1b00; line-height:1.35;">రాహువు నుండి చంద్రుని వరకు గల దూరపు ఖచ్చితమైన మధ్య బిందువునే "భృగు బిందువు" (Destiny Point) అంటారు. గోచార గురుడు లేదా శుభ గ్రహములు ఈ బిందువును సంధించిన కాలంలో భాగ్యోదయము, వివాహము, ఉద్యోగ ప్రాప్తి మరియు విశేష ధనలాభములు సిద్ధించును.</div>');
       out.push('    </div>');
+      out.push('  </div>');
+      out.push(makeFooter(currentPageNo++));
+      out.push('</div>');
+    }
+
+    // ── PAGE: విశేష యోగములు & సమగ్ర దోష విశ్లేషణ ──
+    if (sec.yogasAndDoshas) {
+      out.push('<div class="page-card">');
+      out.push('  <div class="page-content">');
+      out.push(`    <div class="sub-header"><span>${this.appTitle}</span><span>విశేష యోగములు & సమగ్ర దోష విశ్లేషణ</span></div>`);
+
+      // 1. Vedic Yogas
+      out.push('    <div class="section-title">1. జాతకంలో గల విశేష యోగములు (Major Vedic Yogas)</div>');
+      if (yogasList && yogasList.length > 0) {
+        out.push('    <table class="data-table">');
+        out.push('      <thead><tr><th style="width:28%;">యోగము పేరు</th><th style="width:20%;">కారక గ్రహాలు</th><th style="width:14%;">రకము</th><th>శాస్త్రీయ ఫలితము (Classical Effect)</th></tr></thead><tbody>');
+        for (const yg of yogasList.slice(0, 7)) {
+          const catTel = yg.category === 'raja' ? 'రాజయోగం' : (yg.category === 'dhana' ? 'ధనయోగం' : (yg.category === 'mahapurusha' ? 'మహాపురుష' : 'శుభయోగం'));
+          const planetsTel = yg.planets.map((p: string) => AstroConstants.planetNamesTelugu[p] || p).join(', ');
+          out.push(`        <tr><td class="bold gold-text">${this.esc(yg.teluguName || yg.name)}</td><td class="center">${this.esc(planetsTel)}</td><td class="center">${catTel}</td><td style="font-size:7.2pt;">${this.esc(yg.teluguDescription || yg.description)}</td></tr>`);
+        }
+        out.push('      </tbody></table>');
+      } else {
+        out.push('    <div class="highlight-card"><div style="font-size:8pt; color:#475569;">ఈ జాతకంలో సామాన్య గ్రహ స్థితి కలదు. ప్రధాన అరిష్ట యోగములు ఏవీ లేవు.</div></div>');
+      }
+
+      // 2. Comprehensive Dosha Analysis
+      out.push('    <div class="section-title" style="margin-top:6px;">2. సమగ్ర దోష విశ్లేషణ (Dosha Analysis & Classical Cancellations)</div>');
+      out.push('    <table class="data-table">');
+      out.push('      <thead><tr><th style="width:22%;">దోషము</th><th style="width:22%;">స్థితి</th><th>శాస్త్రీయ వివరణ & మినహాయింపు (Cancellations)</th></tr></thead><tbody>');
+
+      // Kuja Dosha
+      const kdStatus = dosha.kujaDosha.hasDosha
+        ? '<span style="color:#dc2626; font-weight:700;">దోషము కలదు</span>'
+        : '<span style="color:#16a34a; font-weight:700;">దోషము లేదు / రద్దు</span>';
+      out.push(`        <tr><td class="bold">కుజ దోషం (మంగళ)</td><td class="center">${kdStatus}</td><td style="font-size:7.2pt;">${this.esc(dosha.kujaDosha.description)}</td></tr>`);
+
+      // Kalsarpa Dosha
+      const ksdStatus = dosha.kaalSarpa.hasDosha
+        ? `<span style="color:#dc2626; font-weight:700;">${this.esc(dosha.kaalSarpa.teluguTypeName)}</span>`
+        : '<span style="color:#16a34a; font-weight:700;">దోషము లేదు</span>';
+      out.push(`        <tr><td class="bold">కాలసర్ప దోషం</td><td class="center">${ksdStatus}</td><td style="font-size:7.2pt;">${this.esc(dosha.kaalSarpa.description)}</td></tr>`);
+
+      out.push('      </tbody></table>');
+
+      out.push('    <div class="highlight-card" style="margin-top:6px;">');
+      out.push('      <div style="font-weight:700; color:#6b1111; font-size:8.5pt; margin-bottom:2px;">✦ పరాశర మహర్షి ప్రవచనము:</div>');
+      out.push('      <div style="font-size:7.5pt; color:#3e1b00; line-height:1.35;">"సర్వేషాం చైవ దోషాణాం గురుదృష్ట్యా వినశ్యతి" — గురు దృష్టి లేదా లగ్నాధిపతి బలము వలన ఎటువంటి జాతక దోషములైనా శమించి శుభ ఫలితములను ఇచ్చును. నిత్య ఇష్టదైవ ప్రార్థన, సదాచారము సర్వదా రక్షించును.</div>');
+      out.push('    </div>');
+
+      out.push('  </div>');
+      out.push(makeFooter(currentPageNo++));
+      out.push('</div>');
+    }
+
+    // ── PAGE: ప్రస్తుత గోచార గ్రహ సంచారము & ఏలినాటి శని దర్శిని ──
+    if (sec.gocharAnalysis) {
+      out.push('<div class="page-card">');
+      out.push('  <div class="page-content">');
+      out.push(`    <div class="sub-header"><span>${this.appTitle}</span><span>ప్రస్తుత గోచార గ్రహ సంచారము & ఏలినాటి శని</span></div>`);
+
+      // 1. Current Transits Table
+      out.push('    <div class="section-title">1. ప్రస్తుత గోచార గ్రహ సంచారము (Janma Rashi Transit Positions)</div>');
+      out.push('    <table class="data-table">');
+      out.push('      <thead><tr><th>గ్రహము</th><th>గోచార రాశి</th><th>చంద్రుని నుండి స్థానము</th><th>శుభ/అశుభ స్థితి</th><th>గోచార ఫలితము (Transit Influence)</th></tr></thead><tbody>');
+      for (const tp of gocharData.transits) {
+        const statusBadge = tp.isBenefic
+          ? '<span style="color:#16a34a; font-weight:700;">శుభ ఫలప్రదం</span>'
+          : '<span style="color:#dc2626; font-weight:700;">అశుభ / మధ్యమ</span>';
+        out.push(`        <tr><td class="bold center">${this.esc(tp.teluguName)}</td><td class="center">${this.esc(tp.rashiTelugu)}</td><td class="center">${tp.houseFromMoon}వ భావము</td><td class="center">${statusBadge}</td><td style="font-size:7.2pt;">${this.esc(tp.effectTelugu)}</td></tr>`);
+      }
+      out.push('      </tbody></table>');
+
+      // 2. Sade Sati / Shani Gochar
+      out.push('    <div class="section-title" style="margin-top:6px;">2. శని గోచార స్థితి & ఏలినాటి శని సమగ్ర విశ్లేషణ (Saturn Transit & Sade Sati)</div>');
+      out.push('    <div class="highlight-card">');
+      out.push(`      <div style="font-size:8pt; line-height:1.4;">${this.esc(gocharData.sadeSatiStatus)}</div>`);
+      out.push('    </div>');
+
+      // 3. Guru Bala
+      out.push('    <div class="section-title" style="margin-top:6px;">3. గురు బల విశ్లేషణ (Guru Bala / Jupiter Strength)</div>');
+      out.push('    <div class="highlight-card">');
+      out.push(`      <div style="font-size:8pt; line-height:1.4;">${this.esc(gocharData.guruBalaStatus)}</div>`);
+      out.push('    </div>');
+
       out.push('  </div>');
       out.push(makeFooter(currentPageNo++));
       out.push('</div>');
@@ -827,25 +928,27 @@ export class TeluguPdfReportGenerator {
       }
     }
 
-    // ── CLOSING PAGE: పరిహారములు (Pariharalu - Empty Page with Astrologer Contact Footer Card) ──
+    // ── CLOSING PAGE: పరిహారాలు (Pariharalu - Empty Page with Astrologer Contact Footer Card) ──
     if (sec.blessingPage) {
-      out.push('<div class="page-card">');
-      out.push('  <div class="page-content" style="flex: 1; display: flex; flex-direction: column;">');
-      out.push('    <div style="text-align: center; border-bottom: 2px solid #6b1111; padding-bottom: 8px; margin-top: 14px; margin-bottom: 20px;">');
-      out.push('      <span style="font-size: 15pt; font-weight: 800; color: #6b1111; letter-spacing: 0.5px;">పరిహారములు (Pariharalu)</span>');
-      out.push('    </div>');
-      out.push('    <div style="flex: 1;"></div>');
-      out.push('    <div style="margin-top: auto; margin-bottom: 12px; border: 2px solid #6b1111; background: linear-gradient(180deg, #fffbf0 0%, #ffeed0 100%); padding: 14px 18px; border-radius: 8px; text-align: center;">');
-      out.push('      <div style="font-size: 13pt; font-weight: 800; color: #6b1111;">|| శుభం భూయాత్ • సర్వేజనాః సుఖినో భవంతు ||</div>');
-      out.push('      <div style="margin-top: 8px; font-size: 10.5pt; color: #3e1b00; font-weight: 700; line-height: 1.5;">');
-      out.push('        జాతక పరిశీలన, వివాహ పొంతనలు, వాస్తు నిర్ణయాలు & సంఖ్యాశాస్త్ర సంప్రదింపులకు:<br>');
-      out.push(`        <b style="font-size:12pt; color:#8b2500;">${this.astrologerTitleAndMobile}</b><br>`);
-      out.push(`        కార్యాలయ చిరునామా: <b>${this.astrologerAddress}</b><br>`);
-      out.push(`        <span style="font-size: 9pt; color: #6b1111;"><b>${this.appTitle}</b> — సంపూర్ణ వేద జ్యోతిష సేవా నిలయం</span>`);
-      out.push('      </div>');
+      out.push('<div class="page-card" style="display: flex !important; flex-direction: column !important; justify-content: space-between !important; height: 290mm !important;">');
+      out.push('  <div>');
+      out.push('    <div style="text-align: center; border-bottom: 2px solid #8b2500; padding-bottom: 8px; margin-top: 10px; margin-bottom: 20px;">');
+      out.push('      <span style="font-size: 16pt; font-weight: 800; color: #8b2500; letter-spacing: 0.5px;">పరిహారాలు (Pariharalu)</span>');
       out.push('    </div>');
       out.push('  </div>');
+      out.push('  <div style="flex: 1;"></div>');
+      out.push('  <div style="margin-top: auto;">');
+      out.push('    <div style="border: 2px solid #8b2500; outline: 1px solid #d4af37; outline-offset: -3px; background: radial-gradient(circle at 50% 20%, #ffffff 0%, #fffcf2 45%, #faedd7 100%); padding: 14px 20px; border-radius: 8px; text-align: center; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(107, 17, 17, 0.05);">');
+      out.push('      <div style="font-size: 13pt; font-weight: 800; color: #8b2500; letter-spacing: 0.5px;">|| శుభం భూయాత్ • సర్వేజనాః సుఖినో భవంతు ||</div>');
+      out.push('      <div style="margin-top: 8px; font-size: 10.5pt; color: #3e1b00; font-weight: 700; line-height: 1.6;">');
+      out.push('        జాతక పరిశీలన, వివాహ పొంతనలు, వాస్తు నిర్ణయాలు & సంఖ్యాశాస్త్ర సంప్రదింపులకు:<br>');
+      out.push(`        <b style="font-size: 12pt; color: #8b2500;">${this.astrologerTitleAndMobile}</b><br>`);
+      out.push(`        కార్యాలయ చిరునామా: <b>${this.astrologerAddress}</b><br>`);
+      out.push(`        <span style="font-size: 9.5pt; color: #6b1111;"><b>${this.appTitle}</b> — సంపూర్ణ వేద జ్యోతిష సేవా నిలయం</span>`);
+      out.push('      </div>');
+      out.push('    </div>');
       out.push(makeFooter(currentPageNo++));
+      out.push('  </div>');
       out.push('</div>');
     }
 
@@ -948,6 +1051,16 @@ export class TeluguPdfReportGenerator {
       case 'Debilitated': return '<span style="color:#b91c1c;">నీచ</span>';
       default: return p.dignity || 'సమం';
     }
+  }
+
+  static esc(str: any): string {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   static toDate(d: any): Date {

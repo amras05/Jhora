@@ -11,7 +11,7 @@ export class DoshaService {
     const rahu = chart.planets.find(p => p.name === 'Rahu');
     const ketu = chart.planets.find(p => p.name === 'Ketu');
 
-    // KUJA DOSHA
+    // KUJA DOSHA (Classical Parashara)
     let hasKuja = false;
     let kujaDesc = 'కుజ దోషం లేదు. దాంపత్య జీవితం అనుకూలం.';
     if (mars) {
@@ -20,9 +20,37 @@ export class DoshaService {
       const hFromVenus = venus ? ((mars.rashiIndex - venus.rashiIndex + 12) % 12) + 1 : 1;
 
       const doshaHouses = [1, 2, 4, 7, 8, 12];
-      if (doshaHouses.includes(hFromAsc) || doshaHouses.includes(hFromMoon) || doshaHouses.includes(hFromVenus)) {
-        hasKuja = true;
-        kujaDesc = `కుజుడు లగ్నం నుండి ${hFromAsc}వ భావంలో ఉన్నందున సాధారణ కుజ దోషం ఏర్పడినది. అయితే కుజుడు స్వక్షేత్ర లేదా మిత్ర క్షేత్రంలో ఉన్నచో దోష నివృత్తి కలదు.`;
+      const triggers: string[] = [];
+      if (doshaHouses.includes(hFromAsc)) triggers.push(`లగ్నం నుండి ${hFromAsc}వ స్థానం`);
+      if (doshaHouses.includes(hFromMoon)) triggers.push(`చంద్రుని నుండి ${hFromMoon}వ స్థానం`);
+      if (doshaHouses.includes(hFromVenus)) triggers.push(`శుక్రుని నుండి ${hFromVenus}వ స్థానం`);
+
+      if (triggers.length > 0) {
+        // Classical Cancellations (కుజ దోష నివృత్తి సూత్రములు)
+        // 1. Mars in own signs (Aries=0, Scorpio=7) or exalted (Capricorn=9)
+        const isOwnOrExalted = mars.rashiIndex === 0 || mars.rashiIndex === 7 || mars.rashiIndex === 9;
+        // 2. Mars in Aries in 1st, Scorpio in 4th, Capricorn in 7th, Leo/Aquarius in 8th, Sagittarius/Pisces in 12th
+        const isSpecificExemption =
+          (hFromAsc === 1 && mars.rashiIndex === 0) ||
+          (hFromAsc === 4 && mars.rashiIndex === 7) ||
+          (hFromAsc === 7 && mars.rashiIndex === 9) ||
+          (hFromAsc === 8 && (mars.rashiIndex === 4 || mars.rashiIndex === 10)) ||
+          (hFromAsc === 12 && (mars.rashiIndex === 8 || mars.rashiIndex === 11));
+        // 3. Jupiter conjunction or aspect on Mars (Guru Drishti)
+        const jupiter = chart.planets.find(p => p.name === 'Jupiter');
+        const jupDist = jupiter ? ((mars.rashiIndex - jupiter.rashiIndex + 12) % 12) : -1;
+        const hasJupiterAspect = jupDist === 0 || jupDist === 4 || jupDist === 6 || jupDist === 8;
+
+        if (isOwnOrExalted || isSpecificExemption || hasJupiterAspect) {
+          hasKuja = false;
+          let reason = isOwnOrExalted ? 'కుజుడు స్వక్షేత్రం/ఉచ్ఛ క్షేత్రంలో ఉన్నందున' : '';
+          if (isSpecificExemption) reason = 'కుజుడు శుభ క్షేత్ర విశేష స్థానంలో ఉన్నందున';
+          if (hasJupiterAspect) reason = 'దేవగురువు బృహస్పతి పవిత్ర దృష్టి లేదా సంయోగం ఉన్నందున';
+          kujaDesc = `కుజుడు ${triggers.join(', ')}లో స్థితమైనప్పటికీ, ${reason} శాస్త్రోక్త కుజ దోష నివృత్తి (దోష భంగం) జరిగినది. దాంపత్యం శుభప్రదం.`;
+        } else {
+          hasKuja = true;
+          kujaDesc = `కుజుడు ${triggers.join(', ')}లో స్థితమై ఉన్నందున సాధారణ కుజ దోషం ఏర్పడినది. నివారణకు సుబ్రహ్మణ్యేశ్వర స్వామి లేదా ఆంజనేయ స్వామి ఆరాధన శ్రేయస్కరం.`;
+        }
       }
     }
 

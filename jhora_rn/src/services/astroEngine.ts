@@ -46,6 +46,77 @@ export class AstroEngine {
   ];
 
   /**
+   * Calculates accurate Keplerian Nirayana planetary positions for any given date and time.
+   */
+  static calculatePlanetLongitudes(date: Date, tz = 5.5): Record<string, { longitude: number; rashiIndex: number }> {
+    const jd = this._julianDay(date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), tz);
+    const t = (jd - 2451545.0) / 36525.0;
+    const ayanamsa = this._lahiriAyanamsa(jd);
+
+    const sunTrop = this._sunGeocentricLongitude(t);
+    const moonTrop = this._moonLongitude(t);
+    const marsTrop = this._planetLongitude(t, this.marsElements);
+    const jupTrop = this._planetLongitude(t, this.jupiterElements);
+    const satTrop = this._planetLongitude(t, this.saturnElements);
+    const mercTrop = this._planetLongitude(t, this.mercuryElements);
+    const venTrop = this._planetLongitude(t, this.venusElements);
+    const rahuTrop = this._meanNorthNode(t);
+    const ketuTrop = (rahuTrop + 180.0) % 360.0;
+
+    const toSid = (trop: number) => {
+      const sid = this._normalize(trop - ayanamsa);
+      return { longitude: sid, rashiIndex: Math.floor(sid / 30.0) % 12 };
+    };
+
+    return {
+      Sun: toSid(sunTrop),
+      Moon: toSid(moonTrop),
+      Mars: toSid(marsTrop),
+      Mercury: toSid(mercTrop),
+      Jupiter: toSid(jupTrop),
+      Venus: toSid(venTrop),
+      Saturn: toSid(satTrop),
+      Rahu: toSid(rahuTrop),
+      Ketu: toSid(ketuTrop),
+    };
+  }
+
+  /**
+   * Returns exact midpoint longitude (0-360) for KP Horary number (1 to 249).
+   */
+  static getKp249Longitude(kpNum: number): number {
+    const dashaSeq = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'];
+    const dashaYears: Record<string, number> = {
+      Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7, Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17
+    };
+
+    const subs: Array<{ start: number; end: number }> = [];
+
+    for (let n = 0; n < 27; n++) {
+      const nakStart = n * (360.0 / 27.0);
+      const nakLordIdx = n % 9;
+      let subStart = nakStart;
+      for (let s = 0; s < 9; s++) {
+        const subLord = dashaSeq[(nakLordIdx + s) % 9];
+        const subArc = (360.0 / 27.0) * (dashaYears[subLord] / 120.0);
+        const subEnd = subStart + subArc;
+        const signBoundary = Math.floor(subStart / 30.0 + 1e-7) * 30.0 + 30.0;
+        if (subStart < signBoundary - 1e-6 && subEnd > signBoundary + 1e-6 && signBoundary <= 360.0) {
+          subs.push({ start: subStart, end: signBoundary });
+          subs.push({ start: signBoundary, end: subEnd });
+        } else {
+          subs.push({ start: subStart, end: subEnd });
+        }
+        subStart = subEnd;
+      }
+    }
+
+    const clamped = Math.max(1, Math.min(subs.length, kpNum));
+    const entry = subs[clamped - 1];
+    return (entry.start + entry.end) / 2.0;
+  }
+
+  /**
    * Main calculation entrypoint.
    */
   static async calculateChart(birth: BirthData): Promise<{
@@ -167,7 +238,9 @@ export class AstroEngine {
     // Ascendant (Lagna)
     const lst = this._localSiderealTime(jd, birth.longitude);
     const ascTrop = this._calculateAscendant(lst, birth.latitude, t);
-    const ascSid = this._normalize(ascTrop - ayanamsa);
+    const ascSid = birth.customAscendantLon !== undefined
+      ? this._normalize(birth.customAscendantLon)
+      : this._normalize(ascTrop - ayanamsa);
 
     const ascendant: PlanetPosition = this._makePosition('Ascendant', ascSid, 1.0, false, false);
 

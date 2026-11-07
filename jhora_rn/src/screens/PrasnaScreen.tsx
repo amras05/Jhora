@@ -11,6 +11,7 @@ import { Screen, AppBar, Card, ThemedTextInput, PrimaryButton } from '../compone
 import { radius, spacing } from '../theme/tokens';
 import { CityDatabase, CityEntry } from '../services/cityDatabase';
 import { BirthData } from '../models/astroModels';
+import { AstroEngine } from '../services/astroEngine';
 
 interface Props {
   onBack: () => void;
@@ -48,6 +49,8 @@ export const PrasnaScreen: React.FC<Props> = ({
       timezone: city.timezone,
       placeName: `${city.name}, ${city.state}`,
       gender: t('prasna.genderValue'),
+      kpNumber: clampedKp,
+      customAscendantLon: AstroEngine.getKp249Longitude(clampedKp),
     };
 
     onGeneratePrasna(birthData);

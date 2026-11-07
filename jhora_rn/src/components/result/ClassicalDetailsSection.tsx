@@ -30,17 +30,19 @@ export const ClassicalDetailsSection: React.FC<Props> = ({ chartData, panchanga 
   const { colors, isDark } = useTheme();
   const { isTe } = useI18n();
 
-  // Accordion open/close states (default first 2 open as commonly needed)
+  // Accordion open/close states (default all open so user immediately sees all details)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     janana: true,
     panchanga: true,
     avakahada: true,
-    ghata: false,
+    ghata: true,
     adrushta: true,
   });
 
   const toggleSection = (key: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    try {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } catch (_) {}
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -175,11 +177,11 @@ export const ClassicalDetailsSection: React.FC<Props> = ({ chartData, panchanga 
             {renderDataRow('కరణం (Karana):', karanaName, false, false)}
             {renderDataRow('సూర్యోదయం (Sunrise):', formatTime(panchanga.sunrise), false, true)}
             {renderDataRow('సూర్యాస్తమయం (Sunset):', formatTime(panchanga.sunset), false, false)}
-            {abhijitRange && renderDataRow('అభిజిత్ ముహూర్తం (శుభం):', `${formatTime(abhijitRange[0])} - ${formatTime(abhijitRange[1])}`, false, true, true)}
-            {brahmaRange && renderDataRow('బ్రహ్మ ముహూర్తం (శుభం):', `${formatTime(brahmaRange[0])} - ${formatTime(brahmaRange[1])}`, false, false)}
-            {renderDataRow('రాహు కాలం (వర్జ్యం):', `${formatTime(panchanga.rahuKalam[0])} - ${formatTime(panchanga.rahuKalam[1])}`, false, true)}
-            {renderDataRow('యమగండం (వర్జ్యం):', `${formatTime(panchanga.yamagandam[0])} - ${formatTime(panchanga.yamagandam[1])}`, false, false)}
-            {gulikaRange && renderDataRow('గుళిక కాలం:', `${formatTime(gulikaRange[0])} - ${formatTime(gulikaRange[1])}`, true, true)}
+            {abhijitRange && abhijitRange[0] && renderDataRow('అభిజిత్ ముహూర్తం (శుభం):', `${formatTime(abhijitRange[0])} - ${formatTime(abhijitRange[1])}`, false, true, true)}
+            {brahmaRange && brahmaRange[0] && renderDataRow('బ్రహ్మ ముహూర్తం (శుభం):', `${formatTime(brahmaRange[0])} - ${formatTime(brahmaRange[1])}`, false, false)}
+            {panchanga.rahuKalam && panchanga.rahuKalam[0] && renderDataRow('రాహు కాలం (వర్జ్యం):', `${formatTime(panchanga.rahuKalam[0])} - ${formatTime(panchanga.rahuKalam[1])}`, false, true)}
+            {panchanga.yamagandam && panchanga.yamagandam[0] && renderDataRow('యమగండం (వర్జ్యం):', `${formatTime(panchanga.yamagandam[0])} - ${formatTime(panchanga.yamagandam[1])}`, false, false)}
+            {gulikaRange && gulikaRange[0] && renderDataRow('గుళిక కాలం:', `${formatTime(gulikaRange[0])} - ${formatTime(gulikaRange[1])}`, true, true)}
           </View>
         )}
       </View>

@@ -34,6 +34,8 @@ import {
   PdfPreset,
   PdfSectionOptions,
 } from '../services/teluguPdfReportGenerator';
+import { VedicYoga } from '../services/yogaService';
+import { GocharAnalysis } from '../services/transitService';
 
 interface Props {
   chartData: ChartData;
@@ -43,6 +45,8 @@ interface Props {
   panchanga: PanchangaData;
   dosha: DoshaAnalysis;
   dashas: DashaPeriod[];
+  yogas?: VedicYoga[];
+  gochar?: GocharAnalysis | null;
   onBack: () => void;
   onNavigateReports?: () => void;
   // Optional for backward compatibility with App.tsx
@@ -58,6 +62,8 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
   panchanga,
   dosha,
   dashas,
+  yogas,
+  gochar,
   onBack,
   onNavigateReports,
 }) => {
@@ -112,6 +118,8 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
           panchanga,
           dosha,
           dashas,
+          yogas,
+          gochar: gochar ?? undefined,
         },
         { preset, sections },
         (s, msg) => {
@@ -153,9 +161,9 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
   };
 
   const presetOptions = [
-    { key: 'summary', label: isTe ? 'సంక్షిప్త (~9 పు.)' : 'Summary (9p)' },
-    { key: 'standard', label: isTe ? 'ప్రామాణిక (~15 పు.)' : 'Standard (15p)' },
-    { key: 'full', label: isTe ? 'సంపూర్ణ (26 పు.)' : 'Full (26p)' },
+    { key: 'summary', label: isTe ? 'సంక్షిప్త (~10 పు.)' : 'Summary (10p)' },
+    { key: 'standard', label: isTe ? 'ప్రామాణిక (~17 పు.)' : 'Standard (17p)' },
+    { key: 'full', label: isTe ? 'సంపూర్ణ (28 పు.)' : 'Full (28p)' },
   ];
 
   const sectionItems: Array<{
@@ -171,12 +179,14 @@ export const TeluguPdfReportScreen: React.FC<Props> = ({
     { key: 'shodashavargaPart4', title: isTe ? '6. త్రింశాంశ, ఖవేదాంశ, అక్షవేదాంశ, షష్ట్యంశ' : '6. D30, D40, D45, D60 Charts', pages: 1 },
     { key: 'bhavaAndSav', title: isTe ? '7. ద్వాదశ భావాలు & సర్వాష్టకవర్గము (SAV 337)' : '7. 12 Houses & SAV 337', pages: 1 },
     { key: 'shadbalaAndSpecial', title: isTe ? '8. షడ్బల, భృగు బిందువు, యోగీ-అవయోగీ, చరకారకాలు' : '8. Shadbala, Destiny Pt & Karakas', pages: 1 },
-    { key: 'dashaOverview', title: isTe ? '9. వింశోత్తరి మహాదశలు & అంతరదశలు (0-40 సం.)' : '9. Mahadashas & Antar (0-40y)', pages: 1 },
-    { key: 'dashaAntar40to80', title: isTe ? '10. అంతర్దశల సమగ్ర పట్టిక (40-80+ సం.)' : '10. Antardashas (40-80+y)', pages: 1 },
-    { key: 'pratyantarDashas', title: isTe ? '11. ప్రత్యంతర దశలు (Level 3 - 3 పుటలు)' : '11. Pratyantar Dashas (L3 - 3p)', pages: 3 },
-    { key: 'sookshmaDashas', title: isTe ? '12. సూక్ష్మ దశల విశ్లేషణ (Level 4 - 2 పుటలు)' : '12. Sookshma Dashas (L4 - 2p)', pages: 2 },
-    { key: 'pranaDashas', title: isTe ? '13. సమగ్ర ప్రాణ దశలు (Level 5 - 10 పుటలు)' : '13. Prana Dashas (L5 - 10p)', pages: 10 },
-    { key: 'blessingPage', title: isTe ? '14. పరిహారములు (Pariharalu)' : '14. Pariharalu (Remedies)', pages: 1 },
+    { key: 'yogasAndDoshas', title: isTe ? '9. విశేష యోగములు & సమగ్ర దోష విశ్లేషణ' : '9. Yogas & Dosha Analysis', pages: 1 },
+    { key: 'gocharAnalysis', title: isTe ? '10. ప్రస్తుత గోచారము & ఏలినాటి శని దర్శిని' : '10. Current Transits & Sade Sati', pages: 1 },
+    { key: 'dashaOverview', title: isTe ? '11. వింశోత్తరి మహాదశలు & అంతరదశలు (0-40 సం.)' : '11. Mahadashas & Antar (0-40y)', pages: 1 },
+    { key: 'dashaAntar40to80', title: isTe ? '12. అంతర్దశల సమగ్ర పట్టిక (40-80+ సం.)' : '12. Antardashas (40-80+y)', pages: 1 },
+    { key: 'pratyantarDashas', title: isTe ? '13. ప్రత్యంతర దశలు (Level 3 - 3 పుటలు)' : '13. Pratyantar Dashas (L3 - 3p)', pages: 3 },
+    { key: 'sookshmaDashas', title: isTe ? '14. సూక్ష్మ దశల విశ్లేషణ (Level 4 - 2 పుటలు)' : '14. Sookshma Dashas (L4 - 2p)', pages: 2 },
+    { key: 'pranaDashas', title: isTe ? '15. సమగ్ర ప్రాణ దశలు (Level 5 - 10 పుటలు)' : '15. Prana Dashas (L5 - 10p)', pages: 10 },
+    { key: 'blessingPage', title: isTe ? '16. పరిహారాలు (Pariharalu)' : '16. Pariharalu (Remedies)', pages: 1 },
   ];
 
   return (

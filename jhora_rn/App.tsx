@@ -35,15 +35,7 @@ function AppContent() {
     navigate('chart_result');
   };
 
-  const handleOpenPdfReport = (data: {
-    chartData: ChartData;
-    ashtakavarga: AshtakavargaData;
-    shadbala: PlanetShadbala[];
-    special: SpecialPointsResult;
-    panchanga: PanchangaData;
-    dosha: DoshaAnalysis;
-    dashas: DashaPeriod[];
-  }) => {
+  const handleOpenPdfReport = (data: any) => {
     setPdfData(data);
     navigate('pdf_report');
   };
@@ -118,6 +110,8 @@ function AppContent() {
               panchanga={pdfData.panchanga}
               dosha={pdfData.dosha}
               dashas={pdfData.dashas}
+              yogas={pdfData.yogas}
+              gochar={pdfData.gochar}
               isDark={isDark}
               lang={lang}
               onBack={goBack}

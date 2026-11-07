@@ -1,4 +1,5 @@
 export interface BirthData {
+  id?: string;
   name: string;
   dateTime: Date;
   latitude: number;
@@ -6,6 +7,8 @@ export interface BirthData {
   timezone: number;
   placeName: string;
   gender?: string;
+  kpNumber?: number;
+  customAscendantLon?: number;
 }
 
 export interface PlanetPosition {

@@ -1,4 +1,5 @@
 import { ChartData, PlanetPosition } from '../models/astroModels';
+import { AstroConstants } from '../constants/astroConstants';
 
 export interface VedicYoga {
   name: string;
@@ -129,31 +130,49 @@ export class YogaService {
       });
     }
 
-    // 5. DHANA YOGA (Benefic planets in 2nd or 11th House)
-    const dhanaPlanets: string[] = [];
-    const dhanaHouses: number[] = [];
-    if (jupiter && [2, 11].includes(houseOf(jupiter))) {
-      dhanaPlanets.push('Jupiter');
-      dhanaHouses.push(houseOf(jupiter));
-    }
-    if (venus && [2, 11].includes(houseOf(venus))) {
-      dhanaPlanets.push('Venus');
-      dhanaHouses.push(houseOf(venus));
-    }
-    if (mercury && [2, 11].includes(houseOf(mercury)) && mercury.dignity !== 'Debilitated') {
-      dhanaPlanets.push('Mercury');
-      dhanaHouses.push(houseOf(mercury));
-    }
+    // 5. PARASHARA DHANA YOGA (Classical Wealth Combinations)
+    const rashiLords = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Saturn', 'Jupiter'];
+    const secondHouseSign = (ascSign + 1) % 12;
+    const eleventhHouseSign = (ascSign + 10) % 12;
+    const secondLord = rashiLords[secondHouseSign];
+    const eleventhLord = rashiLords[eleventhHouseSign];
 
-    if (dhanaPlanets.length > 0) {
+    const pSecondLord = chart.planets.find(p => p.name === secondLord);
+    const pEleventhLord = chart.planets.find(p => p.name === eleventhLord);
+
+    const isSecondLordInWealth = pSecondLord && [2, 11].includes(houseOf(pSecondLord));
+    const isEleventhLordInWealth = pEleventhLord && [2, 11].includes(houseOf(pEleventhLord));
+    const hasBeneficInWealth = (jupiter && [2, 11].includes(houseOf(jupiter)) && (jupiter.dignity === 'Exalted' || jupiter.dignity === 'Own Sign')) ||
+                               (venus && [2, 11].includes(houseOf(venus)) && (venus.dignity === 'Exalted' || venus.dignity === 'Own Sign'));
+
+    if (isSecondLordInWealth || isEleventhLordInWealth || hasBeneficInWealth) {
+      const dhanaPlanets: string[] = [];
+      const dhanaHouses: number[] = [];
+      if (pSecondLord && isSecondLordInWealth) {
+        dhanaPlanets.push(pSecondLord.name);
+        dhanaHouses.push(houseOf(pSecondLord));
+      }
+      if (pEleventhLord && isEleventhLordInWealth) {
+        dhanaPlanets.push(pEleventhLord.name);
+        dhanaHouses.push(houseOf(pEleventhLord));
+      }
+      if (hasBeneficInWealth && jupiter && [2, 11].includes(houseOf(jupiter))) {
+        dhanaPlanets.push('Jupiter');
+        dhanaHouses.push(houseOf(jupiter));
+      }
+      if (hasBeneficInWealth && venus && [2, 11].includes(houseOf(venus))) {
+        dhanaPlanets.push('Venus');
+        dhanaHouses.push(houseOf(venus));
+      }
+
       yogas.push({
         name: 'Maha Dhana Yoga',
         teluguName: 'మహా ధన యోగం',
         category: 'dhana',
-        description: 'Benefic planets placed in 2nd or 11th houses conferring financial stability.',
-        teluguDescription: 'ధన (2), లాభ (11) స్థానాలలో శుభ గ్రహములు నిలిచి జీవితాంతం ఆర్థిక స్థిరత్వాన్ని మరియు వృద్ధిని చేకూర్చును.',
-        planets: dhanaPlanets,
-        houses: dhanaHouses,
+        description: 'Lord of 2nd or 11th placed in wealth/gains houses conferring great prosperity.',
+        teluguDescription: 'ధనాధిపతి (2) లేదా లాభాధిపతి (11) ధన-లాభ స్థానాలలో బలంగా నిలిచి స్థిరమైన సంపదను, భాగ్యవృద్ధిని చేకూర్చును.',
+        planets: Array.from(new Set(dhanaPlanets)),
+        houses: Array.from(new Set(dhanaHouses)),
       });
     }
 

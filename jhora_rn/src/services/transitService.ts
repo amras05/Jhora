@@ -1,5 +1,6 @@
 import { AstroConstants } from '../constants/astroConstants';
 import { ChartData, AshtakavargaData, PlanetPosition } from '../models/astroModels';
+import { AstroEngine } from './astroEngine';
 
 export interface TransitItem {
   planet: string;
@@ -28,22 +29,8 @@ export class TransitService {
     const moon = natalChart.planets.find(p => p.name === 'Moon') || natalChart.planets[1];
     const moonRashi = moon.rashiIndex;
 
-    // Approximate transit positions based on date offset from J2000
-    const jd = (transitDate.getTime() / 86400000) + 2440587.5;
-    const T = (jd - 2451545.0) / 36525.0;
-    const ayanamsa = 23.85 + 0.013972 * (transitDate.getFullYear() - 2000);
-
-    const transitSpeeds: Record<string, number> = {
-      Sun: (280.46 + 36000.77 * T) % 360,
-      Moon: (218.32 + 481267.88 * T) % 360,
-      Mars: (355.43 + 19140.30 * T) % 360,
-      Mercury: (252.25 + 149472.67 * T) % 360,
-      Jupiter: (34.35 + 3034.91 * T) % 360,
-      Venus: (181.98 + 58517.82 * T) % 360,
-      Saturn: (50.08 + 1222.11 * T) % 360,
-      Rahu: (125.04 - 1934.14 * T) % 360,
-      Ketu: (125.04 - 1934.14 * T + 180) % 360,
-    };
+    // Calculate precise Keplerian Nirayana planetary positions for the transit date
+    const currentPlanetPositions = AstroEngine.calculatePlanetLongitudes(transitDate);
 
     const planets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
     const transits: TransitItem[] = [];
@@ -65,9 +52,8 @@ export class TransitService {
     let jupiterHouseFromMoon = 1;
 
     for (const p of planets) {
-      const tropLon = ((transitSpeeds[p] % 360) + 360) % 360;
-      const sidLon = ((tropLon - ayanamsa + 360) % 360);
-      const rIdx = Math.floor(sidLon / 30) % 12;
+      const pos = currentPlanetPositions[p] || { longitude: 0, rashiIndex: 0 };
+      const rIdx = pos.rashiIndex;
       const hFromMoon = ((rIdx - moonRashi + 12) % 12) + 1;
       const isBenefic = (beneficHouses[p] || []).includes(hFromMoon);
       const savPts = ashtakavarga.sav[rIdx] || 28;

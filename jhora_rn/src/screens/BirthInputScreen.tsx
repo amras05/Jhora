@@ -144,6 +144,15 @@ export const BirthInputScreen: React.FC<Props> = ({
       return;
     }
 
+    const testDate = new Date(y, m - 1, d);
+    if (testDate.getFullYear() !== y || testDate.getMonth() !== (m - 1) || testDate.getDate() !== d) {
+      Alert.alert(
+        isTe ? 'తేదీ సరిచూడండి' : 'Invalid Date',
+        isTe ? 'నమోదు చేసిన తేదీ సరైనది కాదు (ఉదా: ఫిబ్రవరి 31 లేదా తప్పు రోజు).' : 'Entered date does not exist (e.g. Feb 31).'
+      );
+      return;
+    }
+
     if (isNaN(h12) || h12 < 1 || h12 > 12) {
       Alert.alert(
         isTe ? 'సమయం సరిచూడండి' : 'Invalid Hour',

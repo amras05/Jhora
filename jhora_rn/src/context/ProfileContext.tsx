@@ -9,6 +9,8 @@ import {
   DoshaAnalysis,
   DashaPeriod,
 } from '../models/astroModels';
+import { VedicYoga } from '../services/yogaService';
+import { GocharAnalysis } from '../services/transitService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PdfReportData = {
@@ -19,6 +21,8 @@ export type PdfReportData = {
   panchanga: PanchangaData;
   dosha: DoshaAnalysis;
   dashas: DashaPeriod[];
+  yogas?: VedicYoga[];
+  gochar?: GocharAnalysis;
 };
 
 type ProfileContextValue = {

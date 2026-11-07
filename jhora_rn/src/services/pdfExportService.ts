@@ -18,6 +18,9 @@ import {
 
 export type PdfStage = 'idle' | 'preparing' | 'generating' | 'saving' | 'complete' | 'error';
 
+import { VedicYoga } from './yogaService';
+import { GocharAnalysis } from './transitService';
+
 export interface SavedReport {
   name: string;
   fileName: string;
@@ -37,6 +40,8 @@ export interface PdfReportParams {
   panchanga: PanchangaData;
   dosha: DoshaAnalysis;
   dashas: DashaPeriod[];
+  yogas?: VedicYoga[];
+  gochar?: GocharAnalysis;
 }
 
 export class PdfExportService {
@@ -253,8 +258,20 @@ export class PdfExportService {
       // 3. Fallback: Native Share Sheet (Save to Files on iOS / Android)
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
-        const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
-        await Sharing.shareAsync(fileUri, {
+        let shareTarget = uri;
+        if (shareTarget.startsWith('content://')) {
+          const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+          const tempPath = `${cacheDir}share_${Date.now()}.pdf`;
+          await FileSystem.copyAsync({
+            from: shareTarget,
+            to: tempPath,
+          });
+          shareTarget = tempPath;
+        } else if (!shareTarget.startsWith('file://')) {
+          shareTarget = `file://${shareTarget}`;
+        }
+
+        await Sharing.shareAsync(shareTarget, {
           UTI: '.pdf',
           mimeType: 'application/pdf',
           dialogTitle: `${fileName} - జాతక చక్రం PDF`,
@@ -281,17 +298,31 @@ export class PdfExportService {
   }
 
   /**
-   * Opens / Shares the PDF file
+   * Opens / Shares the PDF file safely with Android file:// scheme requirement
    */
   static async openReport(uri: string): Promise<void> {
     const isAvailable = await Sharing.isAvailableAsync();
-    if (isAvailable) {
-      const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
-      await Sharing.shareAsync(fileUri, {
-        UTI: '.pdf',
-        mimeType: 'application/pdf',
-      });
+    if (!isAvailable) {
+      throw new Error('Sharing is not available on this device');
     }
+
+    let targetUri = uri;
+    if (targetUri.startsWith('content://')) {
+      const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+      const tempPath = `${cacheDir}share_${Date.now()}.pdf`;
+      await FileSystem.copyAsync({
+        from: targetUri,
+        to: tempPath,
+      });
+      targetUri = tempPath;
+    } else if (!targetUri.startsWith('file://')) {
+      targetUri = `file://${targetUri}`;
+    }
+
+    await Sharing.shareAsync(targetUri, {
+      UTI: '.pdf',
+      mimeType: 'application/pdf',
+    });
   }
 
   /**

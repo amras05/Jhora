@@ -51,6 +51,8 @@ interface Props {
     panchanga: PanchangaData;
     dosha: DoshaAnalysis;
     dashas: DashaPeriod[];
+    yogas?: VedicYoga[];
+    gochar?: GocharAnalysis | null;
   }) => void;
   // Optional for backward compatibility with App.tsx
   isDark?: boolean;
@@ -127,6 +129,8 @@ export const ChartResultScreen: React.FC<Props> = ({
       panchanga,
       dosha,
       dashas,
+      yogas,
+      gochar,
     });
   };
 
