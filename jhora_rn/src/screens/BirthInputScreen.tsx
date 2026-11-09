@@ -35,6 +35,8 @@ import { AppColors } from '../theme/appTheme';
 import { CityDatabase, CityEntry } from '../services/cityDatabase';
 import { SavedHoroscopeService } from '../services/savedHoroscopeService';
 import { BirthData } from '../models/astroModels';
+import { usePlaceSearch, PlaceResult, formatLatLon } from '../hooks/usePlaceSearch';
+import { ManualPlaceForm, PlaceSearchStatusBar, PlaceFormColors } from '../components/ManualPlaceForm';
 
 interface Props {
   isDark: boolean;
@@ -94,8 +96,17 @@ export const BirthInputScreen: React.FC<Props> = ({
   const [selectedCity, setSelectedCity] = useState<CityEntry>(CityDatabase.cities[0]);
   const [autoSave, setAutoSave] = useState(false);
   const [citySearchModal, setCitySearchModal] = useState(false);
-  const [cityQuery, setCityQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<CityEntry[]>(CityDatabase.cities.slice(0, 10));
+  const placeSearch = usePlaceSearch(lang);
+  // null = show search list; otherwise show manual form (optionally pre-filled from an online result)
+  const [manualPlace, setManualPlace] = useState<{ initial?: Partial<CityEntry>; confirmTimezone: boolean } | null>(null);
+  const placeFormColors: PlaceFormColors = {
+    text: textPrimary,
+    textSecondary,
+    border: borderColor,
+    inputBg: isDark ? '#1C110A' : '#FFFDF9',
+    gold,
+    button: AppColors.maroon,
+  };
 
   const openCalendar = () => {
     const y = parseInt(year, 10) || 1990;
@@ -133,18 +144,20 @@ export const BirthInputScreen: React.FC<Props> = ({
     setYear(String(viewYear));
   };
 
-  const handleSearchCity = (text: string) => {
-    setCityQuery(text);
-    if (!text.trim()) {
-      setSearchResults(CityDatabase.cities.slice(0, 10));
-    } else {
-      setSearchResults(CityDatabase.search(text));
+  const handleSelectCity = (c: PlaceResult) => {
+    if (c.timezoneKnown === false) {
+      // Outside the fixed-offset countries: user must confirm the time zone
+      setManualPlace({ initial: c, confirmTimezone: true });
+      return;
     }
+    setSelectedCity(c);
+    setManualPlace(null);
+    setCitySearchModal(false);
   };
 
-  const handleSelectCity = (c: CityEntry) => {
-    setSelectedCity(c);
-    setCitySearchModal(false);
+  const openCitySearch = () => {
+    setManualPlace(null);
+    setCitySearchModal(true);
   };
 
   const handleSubmit = () => {
@@ -210,7 +223,7 @@ export const BirthInputScreen: React.FC<Props> = ({
       latitude: selectedCity.latitude,
       longitude: selectedCity.longitude,
       timezone: selectedCity.timezone,
-      placeName: `${selectedCity.name}, ${selectedCity.state}`,
+      placeName: [selectedCity.name, selectedCity.state].filter(Boolean).join(', '),
       gender: gender === 'Male' ? (isTe ? 'పురుషుడు' : 'Male') : (isTe ? 'స్త్రీ' : 'Female'),
     };
 
@@ -511,12 +524,12 @@ export const BirthInputScreen: React.FC<Props> = ({
           </Text>
           <TouchableOpacity
             style={[styles.cityPickerBtn, { borderColor, backgroundColor: isDark ? '#1C110A' : '#FFFDF9' }]}
-            onPress={() => setCitySearchModal(true)}
+            onPress={openCitySearch}
           >
             <View>
               <Text style={[styles.cityMainText, { color: textPrimary }]}>{selectedCity.name}</Text>
               <Text style={[styles.citySubText, { color: textSecondary }]}>
-                {selectedCity.state} ({selectedCity.latitude}°N, {selectedCity.longitude}°E)
+                {selectedCity.state ? `${selectedCity.state} ` : ''}({formatLatLon(selectedCity.latitude, selectedCity.longitude)})
               </Text>
             </View>
             <Text style={{ fontSize: 16, color: gold }}>🔍 {isTe ? 'ఎంచుకోండి' : 'Search'}</Text>
@@ -681,30 +694,58 @@ export const BirthInputScreen: React.FC<Props> = ({
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={[styles.input, { borderColor, color: textPrimary, backgroundColor: isDark ? '#1C110A' : '#FFFDF9', marginVertical: 10 }]}
-              placeholder={isTe ? 'నగరము లేదా తెలుగు పేరు (ఉదా: విజయవాడ, ఆకివీడు)...' : 'Type city name...'}
-              placeholderTextColor="#888"
-              value={cityQuery}
-              onChangeText={handleSearchCity}
-              autoFocus
-            />
+            {manualPlace ? (
+              <ScrollView keyboardShouldPersistTaps="handled">
+                <ManualPlaceForm
+                  lang={lang}
+                  colors={placeFormColors}
+                  initial={manualPlace.initial}
+                  confirmTimezone={manualPlace.confirmTimezone}
+                  onCancel={() => setManualPlace(null)}
+                  onSubmit={place => {
+                    setSelectedCity(place);
+                    setManualPlace(null);
+                    setCitySearchModal(false);
+                  }}
+                />
+              </ScrollView>
+            ) : (
+              <>
+                <TextInput
+                  style={[styles.input, { borderColor, color: textPrimary, backgroundColor: isDark ? '#1C110A' : '#FFFDF9', marginVertical: 10 }]}
+                  placeholder={isTe ? 'నగరం / గ్రామం పేరు (ఉదా: విజయవాడ, ఆకివీడు)...' : 'Type city, town or village...'}
+                  placeholderTextColor="#888"
+                  value={placeSearch.query}
+                  onChangeText={placeSearch.onChangeQuery}
+                  autoFocus
+                />
 
-            <FlatList
-              data={searchResults}
-              keyExtractor={item => `${item.name}-${item.latitude}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.cityItem, { borderBottomColor: borderColor }]}
-                  onPress={() => handleSelectCity(item)}
-                >
-                  <Text style={[styles.cityName, { color: textPrimary }]}>{item.name}</Text>
-                  <Text style={[styles.cityDetails, { color: textSecondary }]}>
-                    {item.state} • {item.latitude}° N, {item.longitude}° E
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
+                <PlaceSearchStatusBar
+                  lang={lang}
+                  status={placeSearch.status}
+                  hasQuery={placeSearch.query.trim().length >= 3}
+                  colors={placeFormColors}
+                  onManualEntry={() => setManualPlace({ confirmTimezone: false })}
+                />
+
+                <FlatList
+                  data={placeSearch.results}
+                  keyExtractor={item => `${item.name}-${item.latitude}-${item.longitude}`}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[styles.cityItem, { borderBottomColor: borderColor }]}
+                      onPress={() => handleSelectCity(item)}
+                    >
+                      <Text style={[styles.cityName, { color: textPrimary }]}>{item.name}</Text>
+                      <Text style={[styles.cityDetails, { color: textSecondary }]}>
+                        {item.state ? `${item.state} • ` : ''}{formatLatLon(item.latitude, item.longitude)}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            )}
           </View>
         </SafeAreaView>
       </Modal>

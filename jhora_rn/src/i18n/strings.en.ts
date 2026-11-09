@@ -168,7 +168,7 @@ export const stringsEn = {
     yamagandamRow: 'Yamagandam',
     gulikaRow: 'Gulika Kalam',
     cityModalTitle: 'Select City',
-    citySearchPlaceholder: 'Type city name...',
+    citySearchPlaceholder: 'Type city, town or village...',
     pakshaShukla: 'Shukla Paksha ',
     pakshaKrishna: 'Krishna Paksha ',
   },

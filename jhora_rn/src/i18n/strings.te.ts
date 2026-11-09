@@ -168,7 +168,7 @@ export const stringsTe = {
     yamagandamRow: 'యమగండం',
     gulikaRow: 'గుళిక కాలం',
     cityModalTitle: 'నగరాన్ని ఎంచుకోండి',
-    citySearchPlaceholder: 'నగర పేరు నమోదు చేయండి...',
+    citySearchPlaceholder: 'నగరం / గ్రామం పేరు నమోదు చేయండి...',
     pakshaShukla: 'శుక్ల పక్ష ',
     pakshaKrishna: 'కృష్ణ పక్ష ',
   },

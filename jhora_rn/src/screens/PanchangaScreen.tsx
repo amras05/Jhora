@@ -38,6 +38,8 @@ import { AstroEngine } from '../services/astroEngine';
 import { PanchangaData } from '../models/astroModels';
 import { TeluguPdfReportGenerator } from '../services/teluguPdfReportGenerator';
 import { AstroConstants } from '../constants/astroConstants';
+import { usePlaceSearch, PlaceResult, formatLatLon } from '../hooks/usePlaceSearch';
+import { ManualPlaceForm, PlaceSearchStatusBar, PlaceFormColors } from '../components/ManualPlaceForm';
 
 interface Props {
   onBack: () => void;
@@ -48,24 +50,36 @@ interface Props {
 
 export const PanchangaScreen: React.FC<Props> = ({ onBack }) => {
   const { colors, isDark } = useTheme();
-  const { t, isTe } = useI18n();
+  const { t, isTe, lang } = useI18n();
 
   const [date, setDate] = useState(new Date());
   const [city, setCity] = useState<CityEntry>(CityDatabase.cities[0]);
   const [cityModal, setCityModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<CityEntry[]>(CityDatabase.cities.slice(0, 10));
+  const placeSearch = usePlaceSearch(lang);
+  const [manualPlace, setManualPlace] = useState<{ initial?: Partial<CityEntry>; confirmTimezone: boolean } | null>(null);
+  const placeFormColors: PlaceFormColors = {
+    text: colors.text,
+    textSecondary: colors.textSecondary,
+    border: colors.border,
+    inputBg: colors.inputBg,
+    gold: colors.gold,
+    button: colors.maroon,
+  };
+
+  const selectPlace = (item: PlaceResult) => {
+    if (item.timezoneKnown === false) {
+      setManualPlace({ initial: item, confirmTimezone: true });
+      return;
+    }
+    setCity(item);
+    setManualPlace(null);
+    setCityModal(false);
+  };
 
   const changeDay = (delta: number) => {
     const next = new Date(date);
     next.setDate(next.getDate() + delta);
     setDate(next);
-  };
-
-  const handleSearch = (q: string) => {
-    setSearchQuery(q);
-    if (!q.trim()) setSearchResults(CityDatabase.cities.slice(0, 10));
-    else setSearchResults(CityDatabase.search(q));
   };
 
   // Calculate Panchangam
@@ -98,7 +112,10 @@ export const PanchangaScreen: React.FC<Props> = ({ onBack }) => {
         onBack={onBack}
         rightAction={
           <TouchableOpacity
-            onPress={() => setCityModal(true)}
+            onPress={() => {
+              setManualPlace(null);
+              setCityModal(true);
+            }}
             style={[styles.cityBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
             accessibilityRole="button"
             accessibilityLabel="Select city"
@@ -251,46 +268,71 @@ export const PanchangaScreen: React.FC<Props> = ({ onBack }) => {
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  borderColor: colors.border,
-                  color: colors.text,
-                  backgroundColor: colors.inputBg,
-                },
-              ]}
-              placeholder={t('panchanga.citySearchPlaceholder')}
-              placeholderTextColor={colors.textMuted}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoFocus
-            />
-
-            <FlatList
-              data={searchResults}
-              keyExtractor={item => `${item.name}-${item.latitude}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.cityItem,
-                    { borderBottomColor: colors.border },
-                  ]}
-                  onPress={() => {
-                    setCity(item);
+            {manualPlace ? (
+              <ScrollView keyboardShouldPersistTaps="handled">
+                <ManualPlaceForm
+                  lang={lang}
+                  colors={placeFormColors}
+                  initial={manualPlace.initial}
+                  confirmTimezone={manualPlace.confirmTimezone}
+                  onCancel={() => setManualPlace(null)}
+                  onSubmit={place => {
+                    setCity(place);
+                    setManualPlace(null);
                     setCityModal(false);
                   }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.cityName, { color: colors.text }]}>
-                    {item.name}
-                  </Text>
-                  <Text style={[styles.cityDetails, { color: colors.textSecondary }]}>
-                    {item.state} ({item.latitude}°N, {item.longitude}°E)
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
+                />
+              </ScrollView>
+            ) : (
+              <>
+                <TextInput
+                  style={[
+                    styles.searchInput,
+                    {
+                      borderColor: colors.border,
+                      color: colors.text,
+                      backgroundColor: colors.inputBg,
+                    },
+                  ]}
+                  placeholder={t('panchanga.citySearchPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                  value={placeSearch.query}
+                  onChangeText={placeSearch.onChangeQuery}
+                  autoFocus
+                />
+
+                <PlaceSearchStatusBar
+                  lang={lang}
+                  status={placeSearch.status}
+                  hasQuery={placeSearch.query.trim().length >= 3}
+                  colors={placeFormColors}
+                  onManualEntry={() => setManualPlace({ confirmTimezone: false })}
+                />
+
+                <FlatList
+                  data={placeSearch.results}
+                  keyExtractor={item => `${item.name}-${item.latitude}-${item.longitude}`}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.cityItem,
+                        { borderBottomColor: colors.border },
+                      ]}
+                      onPress={() => selectPlace(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.cityName, { color: colors.text }]}>
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.cityDetails, { color: colors.textSecondary }]}>
+                        {item.state ? `${item.state} ` : ''}({formatLatLon(item.latitude, item.longitude)})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            )}
           </View>
         </SafeAreaView>
       </Modal>
